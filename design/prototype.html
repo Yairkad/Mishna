@@ -1,0 +1,476 @@
+<title>משנה יומית</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;500;700&family=Heebo:wght@400;500;700&display=swap">
+<style>
+:root{
+  --bg:#eef0ec; --ink:#1f2622; --muted:#5d6861; --line:#d5dad3; --chip:#ffffff; --chip-on:#1f2622; --chip-on-ink:#fff;
+  --ui:"Heebo",system-ui,sans-serif; --serif:"Frank Ruhl Libre","David Libre","Times New Roman",serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#161a18;--ink:#e6ebe7;--muted:#9aa59e;--line:#2c332f;--chip:#222825;--chip-on:#e6ebe7;--chip-on-ink:#161a18;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#161a18;--ink:#e6ebe7;--muted:#9aa59e;--line:#2c332f;--chip:#222825;--chip-on:#e6ebe7;--chip-on-ink:#161a18;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--ui);direction:rtl;padding-inline:16px;padding-block:20px 40px;margin:0}
+.wrap{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:32px;align-items:start}
+@media (max-width:820px){.wrap{grid-template-columns:1fr}}
+h1{font-family:var(--serif);font-weight:700;font-size:30px;margin:0 0 4px}
+.lede{color:var(--muted);margin:0 0 20px;line-height:1.6;max-width:52ch}
+.ctl{display:flex;flex-direction:column;gap:18px}
+.grp label.h{display:block;font-size:12px;letter-spacing:.04em;color:var(--muted);margin-bottom:8px;font-weight:500}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips button{font:inherit;font-size:14px;border:1px solid var(--line);background:var(--chip);color:var(--ink);padding:8px 14px;border-radius:999px;cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--chip-on);color:var(--chip-on-ink);border-color:var(--chip-on)}
+.chips button:focus-visible{outline:2px solid var(--muted);outline-offset:2px}
+.notes{border-top:1px solid var(--line);padding-top:16px;font-size:14px;line-height:1.7;color:var(--muted)}
+.notes b{color:var(--ink);font-weight:500}
+.notes ul{margin:6px 0 0;padding-inline-start:18px}
+.stage{display:flex;justify-content:center}
+
+/* ---------- phone ---------- */
+.phone{width:min(372px,100%);height:760px;border-radius:38px;padding:10px;background:#0c0d0c;box-shadow:0 30px 60px -30px rgba(0,0,0,.45)}
+.screen{position:relative;height:100%;border-radius:30px;overflow:hidden;background:var(--p-bg);color:var(--p-ink);display:flex;flex-direction:column;font-family:var(--ui)}
+.t-book{--p-bg:#f5efe2;--p-surface:#fbf7ee;--p-ink:#2a2118;--p-muted:#7a6b58;--p-line:#e2d7c2;--p-accent:#7a2e1f;--p-accent-ink:#fbf7ee;--p-soft:#efe4cf;--p-done:#5c7a4a;--p-miss:#c9b79a;--p-holy:#b38a3c;--p-comm:#f0e8d8}
+.t-modern{--p-bg:#ffffff;--p-surface:#f5f7fa;--p-ink:#15202b;--p-muted:#66727f;--p-line:#e3e8ee;--p-accent:#1f5fbf;--p-accent-ink:#ffffff;--p-soft:#e8f0fb;--p-done:#2e8b57;--p-miss:#d5dbe2;--p-holy:#8a6fd1;--p-comm:#f5f7fa}
+.t-night{--p-bg:#141a24;--p-surface:#1b2330;--p-ink:#ece6d8;--p-muted:#98a0ad;--p-line:#2a3444;--p-accent:#d9b36a;--p-accent-ink:#141a24;--p-soft:#232d3c;--p-done:#7fb08a;--p-miss:#3a4454;--p-holy:#b69be0;--p-comm:#1b2330}
+.status{height:30px;flex:none;display:flex;justify-content:space-between;align-items:center;padding:0 22px;font-size:12px;color:var(--p-muted);direction:ltr}
+.view{flex:1;min-height:0;display:flex;flex-direction:column}
+.nav{flex:none;display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--p-line);background:var(--p-surface);padding:6px 0 10px}
+.nav button{font:inherit;background:none;border:0;color:var(--p-muted);display:flex;flex-direction:column;align-items:center;gap:3px;font-size:12px;cursor:pointer;padding:6px 0}
+.nav button svg{width:22px;height:22px}
+.nav button.on{color:var(--p-accent);font-weight:500}
+.scroll{flex:1;min-height:0;overflow-y:auto}
+.pad{padding:18px 20px}
+.btn{font:inherit;font-weight:500;font-size:16px;border:0;border-radius:14px;padding:14px 18px;background:var(--p-accent);color:var(--p-accent-ink);cursor:pointer;width:100%}
+.btn.ghost{background:transparent;color:var(--p-accent);border:1px solid var(--p-line)}
+.btn[disabled]{background:var(--p-soft);color:var(--p-muted);cursor:not-allowed}
+.eyebrow{font-size:12px;color:var(--p-muted);letter-spacing:.03em}
+.serif{font-family:var(--serif)}
+
+/* home card */
+.home{flex:1;display:flex;flex-direction:column;justify-content:space-between;padding:26px 22px 20px}
+.greet{font-size:15px;color:var(--p-muted)}
+.hdate{font-family:var(--serif);font-size:30px;font-weight:700;margin:4px 0 2px}
+.card{background:var(--p-surface);border:1px solid var(--p-line);border-radius:20px;padding:20px}
+.today-ref{font-family:var(--serif);font-size:26px;line-height:1.3;margin:6px 0}
+.meta{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--p-muted)}
+.list{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+.row{display:flex;justify-content:space-between;gap:10px;align-items:baseline;font-size:14px;padding:10px 0;border-top:1px solid var(--p-line)}
+.row:first-child{border-top:0}
+.row .r{font-family:var(--serif);font-size:16px}
+.tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;background:var(--p-soft);color:var(--p-muted)}
+
+/* study */
+.shead{flex:none;padding:10px 18px 8px;border-bottom:1px solid var(--p-line);background:var(--p-bg)}
+.shead .top{display:flex;justify-content:space-between;align-items:center}
+.shead .ref{font-family:var(--serif);font-size:19px;font-weight:700}
+.iconbtn{background:none;border:0;color:var(--p-muted);cursor:pointer;padding:6px;border-radius:10px;font:inherit}
+.iconbtn:hover{background:var(--p-soft)}
+.dots{display:flex;gap:6px;justify-content:center;margin-top:8px}
+.dots span{width:24px;height:4px;border-radius:2px;background:var(--p-line)}
+.dots span.on{background:var(--p-accent)}
+.dots span.seen{background:var(--p-muted)}
+.mnum{font-family:var(--serif);font-size:15px;color:var(--p-accent);font-weight:700;margin-bottom:6px}
+.mtext{font-family:var(--serif);font-size:calc(21px * var(--fs,1));line-height:var(--lh,1.85);margin:0 0 18px}
+details.comm{border:1px solid var(--p-line);border-radius:14px;margin-bottom:10px;background:var(--p-comm)}
+details.comm summary{cursor:pointer;list-style:none;padding:12px 14px;font-weight:500;font-size:14px;display:flex;justify-content:space-between}
+details.comm summary::-webkit-details-marker{display:none}
+details.comm summary::after{content:"+";color:var(--p-muted)}
+details.comm[open] summary::after{content:"–"}
+details.comm .body{padding:0 14px 14px;font-family:var(--serif);font-size:calc(16px * var(--fs,1));line-height:calc(var(--lh,1.85) - .1);color:var(--p-ink)}
+.dh{font-weight:700}
+.sample{font-size:11px;color:var(--p-muted);font-family:var(--ui)}
+.sfoot{flex:none;padding:10px 16px 12px;border-top:1px solid var(--p-line);background:var(--p-bg);display:flex;flex-direction:column;gap:10px}
+.pager{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px}
+.pager button{font:inherit;font-size:14px;font-weight:500;height:42px;border-radius:12px;border:1px solid var(--p-line);background:var(--p-surface);color:var(--p-ink);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;padding:0 12px}
+.pager button svg{width:16px;height:16px;flex:none}
+.pager button[disabled]{opacity:.35;cursor:default}
+.pager .pos{font-family:var(--serif);font-size:15px;color:var(--p-muted);font-variant-numeric:tabular-nums;min-width:44px;text-align:center}
+.seg3{display:flex;border:1px solid var(--p-line);border-radius:10px;overflow:hidden}
+.seg3 button{font:inherit;font-size:12px;border:0;background:var(--p-surface);color:var(--p-ink);padding:6px 10px;cursor:pointer}
+.seg3 button+button{border-inline-start:1px solid var(--p-line)}
+.seg3 button.on{background:var(--p-accent);color:var(--p-accent-ink)}
+.hint{font-size:11px;color:var(--p-muted);text-align:center;padding:0 16px 6px}
+
+/* history */
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.stat{background:var(--p-surface);border:1px solid var(--p-line);border-radius:16px;padding:12px 14px}
+.stat b{display:block;font-family:var(--serif);font-size:26px;font-variant-numeric:tabular-nums}
+.stat span{font-size:12px;color:var(--p-muted)}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+.cal .dow{font-size:11px;color:var(--p-muted);padding-bottom:4px}
+.cal button{font:inherit;aspect-ratio:1;max-width:100%;border:0;border-radius:10px;background:transparent;color:var(--p-ink);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-size:14px;font-family:var(--serif)}
+.cal button small{font-size:9px;font-family:var(--ui);color:var(--p-muted)}
+.cal .done{background:var(--p-done);color:#fff}.cal .done small{color:rgba(255,255,255,.8)}
+.cal .miss{background:transparent;box-shadow:inset 0 0 0 1.5px var(--p-miss)}
+.cal .holy.done{background:var(--p-holy)}
+.cal .today{box-shadow:inset 0 0 0 2px var(--p-accent)}
+.cal .future{color:var(--p-muted)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--p-muted);margin-top:10px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-inline-end:4px;vertical-align:-1px}
+.monthbar{display:flex;justify-content:space-between;align-items:center;margin:4px 0 10px}
+.monthbar b{font-family:var(--serif);font-size:18px}
+
+/* settings */
+.sec{font-size:12px;color:var(--p-muted);margin:18px 0 6px;letter-spacing:.03em}
+.sitem{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:13px 0;border-bottom:1px solid var(--p-line);font-size:15px;cursor:pointer}
+.sitem .v{color:var(--p-muted);font-size:13px}
+.sw{width:42px;height:24px;border-radius:12px;background:var(--p-line);position:relative;flex:none;border:0;cursor:pointer}
+.sw::after{content:"";position:absolute;top:3px;right:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:right .15s}
+.sw.on{background:var(--p-accent)}.sw.on::after{right:21px}
+.adv{color:var(--p-accent)}
+.danger{color:#b3261e}
+
+/* sheets & dialogs */
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:flex-end;z-index:5}
+.scrim.center{align-items:center;padding:24px}
+.sheet{background:var(--p-bg);width:100%;border-radius:22px 22px 0 0;padding:18px 20px 22px;max-height:85%;overflow:auto}
+.dialog{background:var(--p-bg);width:100%;border-radius:22px;padding:22px;text-align:center}
+.dialog h3,.sheet h3{font-family:var(--serif);font-size:21px;margin:0 0 8px}
+.dialog p,.sheet p{color:var(--p-muted);font-size:14px;line-height:1.6;margin:0 0 16px}
+.stack{display:flex;flex-direction:column;gap:8px}
+.toast{position:absolute;bottom:90px;left:50%;transform:translateX(-50%);background:var(--p-ink);color:var(--p-bg);padding:10px 16px;border-radius:12px;font-size:14px;z-index:6;white-space:nowrap}
+.done-card{text-align:center}
+.done-card .big{font-family:var(--serif);font-size:24px;font-weight:700;margin:6px 0}
+
+/* onboarding */
+.ob{flex:1;display:flex;flex-direction:column;padding:22px}
+.obbar{display:flex;gap:4px;margin-bottom:22px}.obbar span{flex:1;height:4px;border-radius:2px;background:var(--p-line)}.obbar span.on{background:var(--p-accent)}
+.ob h2{font-family:var(--serif);font-size:25px;margin:0 0 6px}
+.ob p{color:var(--p-muted);font-size:14px;line-height:1.6;margin:0 0 18px}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;font-size:13px;color:var(--p-muted)}
+.field input,.field select{font:inherit;font-size:16px;color:var(--p-ink);background:var(--p-surface);border:1px solid var(--p-line);border-radius:12px;padding:12px}
+.stepper{display:flex;align-items:center;justify-content:center;gap:22px;margin:18px 0}
+.stepper button{width:52px;height:52px;border-radius:50%;border:1px solid var(--p-line);background:var(--p-surface);color:var(--p-ink);font-size:24px;cursor:pointer}
+.stepper b{font-family:var(--serif);font-size:54px;min-width:70px;text-align:center}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.seg button{font:inherit;padding:12px;border-radius:12px;border:1px solid var(--p-line);background:var(--p-surface);color:var(--p-ink);cursor:pointer}
+.seg button.on{border-color:var(--p-accent);box-shadow:inset 0 0 0 1px var(--p-accent)}
+.chk{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--p-line);font-size:14px}
+.chk input{width:18px;height:18px;accent-color:var(--p-accent)}
+.chk .r{font-family:var(--serif);margin-inline-start:auto;color:var(--p-muted)}
+.spacer{flex:1}
+@media (prefers-reduced-motion:reduce){.sw::after{transition:none}}
+</style>
+
+<div class="wrap">
+  <div class="ctl">
+    <div>
+      <h1>משנה יומית</h1>
+      <p class="lede">אב טיפוס לחיץ של האפליקציה. אפשר לעבור בין סגנונות ולנסות תרחישים שונים. הכל כאן עובד: דפדוף בין משניות, פתיחת פירושים, כפתור הסיום, לוח השנה וההגדרות.</p>
+    </div>
+    <div class="grp">
+      <label class="h">סגנון עיצוב</label>
+      <div class="chips" id="themeChips">
+        <button data-t="t-book" aria-pressed="true">ספר קלאסי</button>
+        <button data-t="t-modern" aria-pressed="false">מודרני נקי</button>
+        <button data-t="t-night" aria-pressed="false">לילה</button>
+      </div>
+    </div>
+    <div class="grp">
+      <label class="h">תרחיש</label>
+      <div class="chips" id="scenChips">
+        <button data-s="weekday" aria-pressed="true">יום חול</button>
+        <button data-s="erev" aria-pressed="false">ערב שבת</button>
+        <button data-s="motzash" aria-pressed="false">מוצאי שבת</button>
+        <button data-s="onboarding" aria-pressed="false">הפעלה ראשונה</button>
+      </div>
+    </div>
+    <div class="notes">
+      <b>מה לנסות</b>
+      <ul>
+        <li>במסך הלימוד: דפדף עד המשנה השלישית וגלול עד הסוף. רק אז נפתח כפתור הסיום.</li>
+        <li>הכפתור ⋯ בראש מסך הלימוד: יום קדימה / אחורה.</li>
+        <li>בהיסטוריה: לחיצה על יום בלוח.</li>
+        <li>בהגדרות: פריט מתקדם דורש אישור בשני שלבים.</li>
+        <li>בהפעלה ראשונה: בחר "תאריך בעבר" בשלב 4.</li>
+      </ul>
+      <p style="margin-top:10px">טקסט המשנה אמיתי (ברכות א, א–ג). קטעי הפירושים מקוצרים לדוגמה, ובאפליקציה יגיעו מ-Sefaria.</p>
+    </div>
+  </div>
+  <div class="stage">
+    <div class="phone t-book" id="phone">
+      <div class="screen">
+        <div class="status"><span>9:41</span><span>●●● ▮</span></div>
+        <div class="view" id="view"></div>
+        <nav class="nav" id="nav">
+          <button data-tab="study"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 5.5C6.5 4.5 9.5 4.5 12 6c2.5-1.5 5.5-1.5 8-.5v13c-2.5-1-5.5-1-8 .5-2.5-1.5-5.5-1.5-8-.5z"/><path d="M12 6v13"/></svg>לימוד</button>
+          <button data-tab="history"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>היסטוריה</button>
+          <button data-tab="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8"/></svg>הגדרות</button>
+        </nav>
+        <div id="overlay"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const M = [
+  {n:"משנה א׳", t:"מֵאֵימָתַי קוֹרִין אֶת שְׁמַע בְּעַרְבִית. מִשָּׁעָה שֶׁהַכֹּהֲנִים נִכְנָסִים לֶאֱכֹל בִּתְרוּמָתָן, עַד סוֹף הָאַשְׁמוּרָה הָרִאשׁוֹנָה, דִּבְרֵי רַבִּי אֱלִיעֶזֶר. וַחֲכָמִים אוֹמְרִים, עַד חֲצוֹת. רַבָּן גַּמְלִיאֵל אוֹמֵר, עַד שֶׁיַּעֲלֶה עַמּוּד הַשָּׁחַר. מַעֲשֶׂה שֶׁבָּאוּ בָנָיו מִבֵּית הַמִּשְׁתֶּה, אָמְרוּ לוֹ, לֹא קָרִינוּ אֶת שְׁמַע. אָמַר לָהֶם, אִם לֹא עָלָה עַמּוּד הַשַּׁחַר, חַיָּבִין אַתֶּם לִקְרוֹת. וְלֹא זוֹ בִּלְבַד אָמְרוּ, אֶלָּא כָּל מַה שֶּׁאָמְרוּ חֲכָמִים עַד חֲצוֹת, מִצְוָתָן עַד שֶׁיַּעֲלֶה עַמּוּד הַשָּׁחַר. הֶקְטֵר חֲלָבִים וְאֵבָרִים, מִצְוָתָן עַד שֶׁיַּעֲלֶה עַמּוּד הַשָּׁחַר. וְכָל הַנֶּאֱכָלִים לְיוֹם אֶחָד, מִצְוָתָן עַד שֶׁיַּעֲלֶה עַמּוּד הַשָּׁחַר. אִם כֵּן, לָמָּה אָמְרוּ חֲכָמִים עַד חֲצוֹת, כְּדֵי לְהַרְחִיק אֶת הָאָדָם מִן הָעֲבֵרָה.",
+   b:[["משעה שהכהנים נכנסים לאכול בתרומתן.","כהנים שנטמאו וטבלו אין יכולין לאכול בתרומה עד שיעריב שמשן, דהיינו צאת הכוכבים."],["עד סוף האשמורה הראשונה.","שליש הלילה."]]},
+  {n:"משנה ב׳", t:"מֵאֵימָתַי קוֹרִין אֶת שְׁמַע בְּשַׁחֲרִית. מִשֶּׁיַּכִּיר בֵּין תְּכֵלֶת לְלָבָן. רַבִּי אֱלִיעֶזֶר אוֹמֵר, בֵּין תְּכֵלֶת לְכַרְתִּי. וְגוֹמְרָהּ עַד הָנֵץ הַחַמָּה. רַבִּי יְהוֹשֻׁעַ אוֹמֵר, עַד שָׁלֹשׁ שָׁעוֹת, שֶׁכֵּן דֶּרֶךְ בְּנֵי מְלָכִים לַעֲמֹד בְּשָׁלֹשׁ שָׁעוֹת. הַקּוֹרֵא מִכָּאן וָאֵילָךְ לֹא הִפְסִיד, כְּאָדָם הַקּוֹרֵא בַתּוֹרָה.",
+   b:[["בין תכלת ללבן.","בין צמר הצבוע תכלת ובין הלבן שבו."],["עד שלש שעות.","שליש היום."]]},
+  {n:"משנה ג׳", t:"בֵּית שַׁמַּאי אוֹמְרִים, בָּעֶרֶב כָּל אָדָם יַטּוּ וְיִקְרְאוּ, וּבַבֹּקֶר יַעַמְדוּ, שֶׁנֶּאֱמַר וּבְשָׁכְבְּךָ וּבְקוּמֶךָ. וּבֵית הִלֵּל אוֹמְרִים, כָּל אָדָם קוֹרֵא כְדַרְכּוֹ, שֶׁנֶּאֱמַר וּבְלֶכְתְּךָ בַדֶּרֶךְ. אִם כֵּן, לָמָּה נֶאֱמַר וּבְשָׁכְבְּךָ וּבְקוּמֶךָ, בְּשָׁעָה שֶׁבְּנֵי אָדָם שׁוֹכְבִים, וּבְשָׁעָה שֶׁבְּנֵי אָדָם עוֹמְדִים. אָמַר רַבִּי טַרְפוֹן, אֲנִי הָיִיתִי בָא בַדֶּרֶךְ, וְהִטֵּיתִי לִקְרוֹת כְּדִבְרֵי בֵית שַׁמַּאי, וְסִכַּנְתִּי בְעַצְמִי מִפְּנֵי הַלִּסְטִים. אָמְרוּ לוֹ, כְּדַאי הָיִיתָ לָחוּב בְּעַצְמְךָ, שֶׁעָבַרְתָּ עַל דִּבְרֵי בֵית הִלֵּל.",
+   b:[["יטו.","על צדיהם."],["כדאי היית לחוב בעצמך.","ראוי היית להתחייב בנפשך."]]}
+];
+const S = {theme:"t-book", scen:"weekday", tab:"home", page:0, maxSeen:0, bottomReached:false, done:false, fs:1, lh:"normal", showTyt:true, notif:true, wake:true, backup:true, pace:3, ob:1, obPast:false, obName:"יאיר"};
+const LH={compact:1.55, normal:1.85, wide:2.25};
+const $ = s=>document.querySelector(s);
+const view = $("#view"), overlay = $("#overlay"), nav = $("#nav");
+const esc = s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function setTab(t){S.tab=t; render();}
+function toast(msg){const d=document.createElement("div");d.className="toast";d.textContent=msg;overlay.appendChild(d);setTimeout(()=>d.remove(),2200);}
+function closeOverlay(){overlay.innerHTML="";}
+
+function render(){
+  closeOverlay();
+  nav.hidden = S.scen==="onboarding";
+  [...nav.children].forEach(b=>b.classList.toggle("on", b.dataset.tab===(S.tab==="home"?"study":S.tab)));
+  if(S.scen==="onboarding") return renderOb();
+  ({home:renderHome, study:renderStudy, history:renderHistory, settings:renderSettings})[S.tab]();
+}
+
+/* ---------- home card ---------- */
+function renderHome(){
+  const doneLine = S.done ? `<span class="tag" style="background:var(--p-done);color:#fff">הושלם היום ✓</span>` : "";
+  let body="";
+  if(S.scen==="weekday"){
+    body = `<div class="card">
+      <div class="eyebrow">הלימוד של היום · יום 45 בתוכנית</div>
+      <div class="today-ref">מסכת ברכות<br>פרק א׳ · משניות א׳–ג׳</div>
+      <div class="meta"><span>3 משניות</span><span>סדר זרעים</span>${doneLine}</div>
+    </div>`;
+  } else if(S.scen==="erev"){
+    body = `<div class="card">
+      <div class="eyebrow">ערב שבת · הלימוד לימים הקרובים</div>
+      <p style="font-size:13px;color:var(--p-muted);margin:8px 0 4px;line-height:1.5">בשבת לומדים מהספר. במוצאי שבת תתבקש לסמן מה נלמד.</p>
+      <div class="list">
+        <div class="row"><span>היום, שישי</span><span class="r">ברכות א׳, א׳–ג׳</span></div>
+        <div class="row"><span>שבת <span class="tag">מהספר</span></span><span class="r">ברכות א׳, ד׳–ב׳, א׳</span></div>
+      </div>
+    </div>`;
+  } else {
+    body = `<div class="card">
+      <div class="eyebrow">מוצאי שבת · עד הזריחה</div>
+      <div class="today-ref" style="font-size:21px">האם למדת בשבת?</div>
+      <div class="list" style="margin-bottom:14px">
+        <label class="chk"><input type="checkbox" checked id="shab1"> שבת <span class="r">ברכות א׳, ד׳–ב׳, א׳</span></label>
+      </div>
+      <button class="btn" id="markShab">סמן כבוצע</button>
+    </div>`;
+  }
+  view.innerHTML = `<div class="home">
+    <div>
+      <div class="greet">ערב טוב, ${esc(S.obName)}</div>
+      <div class="hdate">${S.scen==="weekday"?"י״ג בתשרי תשפ״ז":S.scen==="erev"?"ערב שבת קודש":"מוצאי שבת קודש"}</div>
+      <div class="meta"><span>רצף נוכחי: 12 ימים</span></div>
+    </div>
+    ${body}
+    <button class="btn" id="go">${S.done?"חזרה ללימוד של היום":S.scen==="motzash"?"ללימוד של מחר":"התחל ללמוד"}</button>
+  </div>`;
+  $("#go").onclick=()=>setTab("study");
+  const ms=$("#markShab"); if(ms) ms.onclick=()=>{toast("לימוד השבת סומן ✓"); ms.disabled=true; ms.textContent="סומן";};
+}
+
+/* ---------- study ---------- */
+function renderStudy(){
+  const m = M[S.page], last = S.page===M.length-1;
+  const bart = m.b.map(([d,x])=>`<p style="margin:0 0 8px"><span class="dh">${d}</span> ${x}</p>`).join("");
+  view.innerHTML = `
+    <div class="shead">
+      <div class="top">
+        <div><div class="eyebrow">סדר זרעים · יום 45 · י״ג בתשרי</div><div class="ref">ברכות פרק א׳ · ${m.n}</div></div>
+        <button class="iconbtn" id="more" aria-label="אפשרויות">⋯</button>
+      </div>
+      <div class="dots">${M.map((_,i)=>`<span class="${i===S.page?"on":i<=S.maxSeen?"seen":""}"></span>`).join("")}</div>
+    </div>
+    <div class="scroll" id="sc" style="--fs:${S.fs};--lh:${LH[S.lh]}">
+      <div class="pad">
+        <div class="mnum">${m.n}</div>
+        <p class="mtext">${m.t}</p>
+        <details class="comm" open><summary>ברטנורא</summary><div class="body">${bart}<div class="sample">קטע לדוגמה</div></div></details>
+        ${S.showTyt?`<details class="comm"><summary>עיקר תוספות יום טוב</summary><div class="body"><p style="margin:0 0 8px"><span class="dh">${m.b[0][0]}</span> פירוש קצר לדוגמה. באפליקציה יוצג כאן הטקסט המלא מ-Sefaria.</p><div class="sample">קטע לדוגמה</div></div></details>`:""}
+      </div>
+    </div>
+    ${last && !S.bottomReached && !S.done ? `<div class="hint">גלול עד סוף המשנה כדי לסיים</div>`:""}
+    <div class="sfoot">
+      <div class="pager">
+        <button id="prev" ${S.page===0?"disabled":""}><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8h12M10 4l4 4-4 4"/></svg>המשנה הקודמת</button>
+        <span class="pos">${S.page+1} / ${M.length}</span>
+        <button id="next" ${last?"disabled":""}>המשנה הבאה<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 8H2M6 4L2 8l4 4"/></svg></button>
+      </div>
+      ${S.done ? `<button class="btn ghost" disabled>הלימוד הושלם ✓</button>` :
+        `<button class="btn" id="fin" ${last&&S.bottomReached?"":"disabled"}>סיימתי את הלימוד היום</button>`}
+    </div>`;
+  const sc=$("#sc");
+  const check=()=>{ if(last && !S.bottomReached && sc.scrollTop+sc.clientHeight>=sc.scrollHeight-6){S.bottomReached=true; const f=$("#fin"); if(f) f.disabled=false; const h=document.querySelector(".hint"); if(h) h.remove();} };
+  sc.addEventListener("scroll",check); requestAnimationFrame(check);
+  sc.querySelectorAll("details").forEach(d=>d.addEventListener("toggle",check));
+  const go=d=>{S.page=Math.max(0,Math.min(M.length-1,S.page+d)); S.maxSeen=Math.max(S.maxSeen,S.page); renderStudy();};
+  $("#prev").onclick=()=>go(-1); $("#next").onclick=()=>go(1);
+  let x0=null; sc.addEventListener("touchstart",e=>x0=e.touches[0].clientX,{passive:true});
+  sc.addEventListener("touchend",e=>{if(x0==null)return; const dx=e.changedTouches[0].clientX-x0; if(Math.abs(dx)>60) go(dx>0?1:-1); x0=null;});
+  const fin=$("#fin"); if(fin) fin.onclick=showDone;
+  $("#more").onclick=showShift;
+}
+function showDone(){
+  overlay.innerHTML=`<div class="scrim center"><div class="dialog done-card">
+    <div class="eyebrow">יום 45</div>
+    <div class="big">סיימת את הלימוד להיום</div>
+    <p style="margin-bottom:4px">מסכת ברכות · פרק א׳ · משניות א׳–ג׳</p>
+    <p>3 משניות</p>
+    <button class="btn" id="ok">אישור</button></div></div>`;
+  $("#ok").onclick=()=>{S.done=true; closeOverlay(); toast("כל הכבוד! הלימוד להיום הושלם"); setTimeout(()=>setTab("history"),900);};
+}
+function showShift(){
+  overlay.innerHTML=`<div class="scrim" id="scr"><div class="sheet">
+    <h3>תיקון מיקום בלימוד</h3>
+    <p>לשימוש כשלמדת יותר או פחות מחוץ לאפליקציה. ההיסטוריה לא משתנה.</p>
+    <div class="stack">
+      <button class="btn ghost" data-d="1">למדתי יותר · יום קדימה</button>
+      <button class="btn ghost" data-d="-1">למדתי פחות · יום אחורה</button>
+    </div></div></div>`;
+  $("#scr").onclick=e=>{ if(e.target.id==="scr") closeOverlay(); };
+  overlay.querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{
+    const fwd=b.dataset.d==="1";
+    overlay.innerHTML=`<div class="scrim center"><div class="dialog">
+      <h3>${fwd?"להזיז יום קדימה?":"להזיז יום אחורה?"}</h3>
+      <p>הלימוד של היום יתחיל מ${fwd?"ברכות א׳, ד׳":"המשניות של אתמול"}.</p>
+      <div class="stack"><button class="btn" id="y">אישור</button><button class="btn ghost" id="n">ביטול</button></div></div></div>`;
+    $("#y").onclick=()=>{closeOverlay(); toast(fwd?"המיקום הוזז יום קדימה":"המיקום הוזז יום אחורה");};
+    $("#n").onclick=closeOverlay;
+  });
+}
+
+/* ---------- history ---------- */
+// Tishrei 5787: 1 Tishrei = Sat 12.9.2026
+const HEB=["א","ב","ג","ד","ה","ו","ז","ח","ט","י","יא","יב","יג","יד","טו","טז","יז","יח","יט","כ","כא","כב","כג","כד","כה","כו","כז","כח","כט","ל"];
+const HOLY=new Set([1,2,7,10]); const MISS=new Set([5,9]); const TODAY=13;
+function renderHistory(){
+  let cells=["א","ב","ג","ד","ה","ו","ש"].map(d=>`<div class="dow">${d}</div>`).join("");
+  cells += `<div></div>`.repeat(6);
+  for(let d=1; d<=30; d++){
+    const gd = 11+d<=30? 11+d : 11+d-30;
+    let cls=""; if(d<TODAY) cls = MISS.has(d)?"miss":"done"; if(HOLY.has(d)) cls+=" holy";
+    if(d===TODAY) cls = (S.done?"done ":"")+"today"; if(d>TODAY) cls="future";
+    cells+=`<button class="${cls}" data-d="${d}">${HEB[d-1]}<small>${gd}</small></button>`;
+  }
+  view.innerHTML=`<div class="scroll"><div class="pad">
+    <div class="stats">
+      <div class="stat"><b>${S.done?13:12}</b><span>רצף נוכחי (ימים)</span></div>
+      <div class="stat"><b>31</b><span>שיא רצף</span></div>
+      <div class="stat"><b>${S.done?135:132}</b><span>משניות שנלמדו</span></div>
+      <div class="stat"><b>${S.done?4057:4060}</b><span>משניות שנותרו</span></div>
+    </div>
+    <div class="card" style="padding:14px">
+      <div class="monthbar"><button class="iconbtn" aria-label="חודש קודם">›</button><b>תשרי תשפ״ז</b><button class="iconbtn" aria-label="חודש הבא">‹</button></div>
+      <div class="cal">${cells}</div>
+      <div class="legend"><span><i style="background:var(--p-done)"></i>בוצע</span><span><i style="background:var(--p-holy)"></i>שבת/חג (מהספר)</span><span><i style="box-shadow:inset 0 0 0 1.5px var(--p-miss)"></i>לא הושלם</span></div>
+    </div>
+    <div class="row" style="margin-top:14px"><span>תאריך סיום משוער</span><span class="r">כ״ד בטבת תש״צ</span></div>
+    <div class="row"><span>ימי לימוד שהושלמו</span><span class="r">${S.done?44:43}</span></div>
+  </div></div>`;
+  view.querySelectorAll(".cal button").forEach(b=>b.onclick=()=>{
+    const d=+b.dataset.d; if(d>TODAY) return;
+    const st = d===TODAY ? (S.done?"בוצע":"טרם הושלם") : MISS.has(d)?"לא הושלם":HOLY.has(d)?"בוצע · סומן במוצאי שבת/חג":"בוצע";
+    overlay.innerHTML=`<div class="scrim" id="scr"><div class="sheet"><h3>${HEB[d-1]}׳ בתשרי</h3>
+      <div class="list"><div class="row"><span>הוקצו</span><span class="r">3 משניות</span></div>
+      <div class="row"><span>סטטוס</span><span>${st}</span></div></div>
+      <button class="btn ghost" style="margin-top:14px" id="cl">סגירה</button></div></div>`;
+    $("#cl").onclick=closeOverlay; $("#scr").onclick=e=>{if(e.target.id==="scr")closeOverlay();};
+  });
+}
+
+/* ---------- settings ---------- */
+function renderSettings(){
+  const sw=(k)=>`<button class="sw ${S[k]?"on":""}" data-k="${k}" aria-pressed="${S[k]}"></button>`;
+  view.innerHTML=`<div class="scroll"><div class="pad">
+    <div class="sec">תצוגה</div>
+    <div class="sitem"><span>גודל גופן</span><span style="display:flex;gap:6px"><button class="iconbtn" id="fsm">א−</button><button class="iconbtn" id="fsp">א+</button></span></div>
+    <div class="sitem"><span>רווח בין שורות</span><span class="seg3">${[["compact","צפוף"],["normal","רגיל"],["wide","מרווח"]].map(([k,t])=>`<button data-lh="${k}" class="${S.lh===k?"on":""}">${t}</button>`).join("")}</span></div>
+    <div class="sitem"><span>עיקר תוספות יום טוב</span>${sw("showTyt")}</div>
+    <div class="sitem"><span>מסך דלוק בזמן הלימוד</span>${sw("wake")}</div>
+    <div class="sitem"><span>מצב תצוגה</span><span class="v">לפי המערכת</span></div>
+    <div class="sec">התראות</div>
+    <div class="sitem"><span>התראות</span>${sw("notif")}</div>
+    <div class="sitem"><span>שעות התראה</span><span class="v">09:00 · 21:00</span></div>
+    <div class="sec">כללי</div>
+    <div class="sitem"><span>עיר לזמני היום</span><span class="v">ירושלים</span></div>
+    <div class="sitem"><span>גיבוי שבועי אוטומטי</span>${sw("backup")}</div>
+    <div class="sitem"><span>אודות</span><span class="v">גרסה 1.0</span></div>
+    <div class="sec">מתקדם · דורש אישור</div>
+    <div class="sitem adv" data-a="pace"><span>קצב לימוד</span><span class="v">${S.pace} משניות ביום</span></div>
+    <div class="sitem adv" data-a="start"><span>נקודת ותאריך התחלה</span><span class="v">ברכות א׳, א׳</span></div>
+    <div class="sitem adv" data-a="bk"><span>גיבוי ושחזור ידני</span><span class="v">JSON</span></div>
+    <div class="sitem danger" data-a="reset"><span>איפוס מלא</span><span></span></div>
+  </div></div>`;
+  view.querySelectorAll(".sw").forEach(b=>b.onclick=()=>{S[b.dataset.k]=!S[b.dataset.k]; renderSettings();});
+  $("#fsm").onclick=()=>{S.fs=Math.max(.8,S.fs-.1); toast("גודל גופן: "+Math.round(S.fs*100)+"%");};
+  $("#fsp").onclick=()=>{S.fs=Math.min(1.5,S.fs+.1); toast("גודל גופן: "+Math.round(S.fs*100)+"%");};
+  view.querySelectorAll("[data-lh]").forEach(b=>b.onclick=e=>{e.stopPropagation(); S.lh=b.dataset.lh; renderSettings();});
+  view.querySelectorAll("[data-a]").forEach(el=>el.onclick=()=>advanced(el.dataset.a));
+}
+function advanced(a){
+  const T={pace:"שינוי קצב לימוד",start:"שינוי נקודת התחלה",bk:"גיבוי ושחזור",reset:"איפוס מלא"}[a];
+  overlay.innerHTML=`<div class="scrim center"><div class="dialog"><div class="eyebrow">שלב 1 מתוך 2</div><h3>${T}</h3>
+    <p>${a==="reset"?"כל הנתונים יימחקו והאפליקציה תחזור להפעלה הראשונה.":"פעולה זו משנה את תוכנית הלימוד שלך."}</p>
+    <div class="stack"><button class="btn" id="s1">המשך</button><button class="btn ghost" id="c">ביטול</button></div></div></div>`;
+  $("#c").onclick=closeOverlay;
+  $("#s1").onclick=()=>{
+    let inner = a==="pace" ? `<div class="stepper"><button id="pm">−</button><b id="pv">${S.pace}</b><button id="pp">+</button></div><p>${"אם הלימוד של היום לא סומן עדיין, השינוי חל כבר היום."}</p>`
+      : `<p>${a==="reset"?"אי אפשר לבטל פעולה זו.":"אשר כדי להמשיך."}</p>`;
+    overlay.innerHTML=`<div class="scrim center"><div class="dialog"><div class="eyebrow">שלב 2 מתוך 2</div><h3>${T}</h3>${inner}
+      <div class="stack"><button class="btn" id="s2" ${a==="reset"?'style="background:#b3261e;color:#fff"':""}>${a==="reset"?"מחק הכל":"אישור סופי"}</button><button class="btn ghost" id="c">ביטול</button></div></div></div>`;
+    let v=S.pace;
+    if(a==="pace"){ $("#pm").onclick=()=>{v=Math.max(1,v-1);$("#pv").textContent=v;}; $("#pp").onclick=()=>{v=Math.min(30,v+1);$("#pv").textContent=v;}; }
+    $("#c").onclick=closeOverlay;
+    $("#s2").onclick=()=>{ if(a==="pace")S.pace=v; closeOverlay(); if(a==="reset"){pickScen("onboarding");return;} renderSettings(); toast("נשמר"); };
+  };
+}
+
+/* ---------- onboarding ---------- */
+function renderOb(){
+  const bar=`<div class="obbar">${[1,2,3,4,5].map(i=>`<span class="${i<=S.ob?"on":""}"></span>`).join("")}</div>`;
+  let c="";
+  if(S.ob===1) c=`<h2>ברוך הבא</h2><p>לימוד משנה יומי, רציף, מברכות ועד עוקצין.</p>
+    <label class="field">איך לקרוא לך?<input id="nm" value="${esc(S.obName)}"></label>`;
+  if(S.ob===2) c=`<h2>כמה משניות ביום?</h2><p>אפשר לשנות אחר כך בהגדרות המתקדמות.</p>
+    <div class="stepper"><button id="pm">−</button><b id="pv">${S.pace}</b><button id="pp">+</button></div>
+    <p style="text-align:center">סיום ששת הסדרים בעוד כ-${Math.ceil(4192/S.pace/365*10)/10} שנים</p>`;
+  if(S.ob===3) c=`<h2>מאיפה מתחילים?</h2><p>ברירת המחדל: תחילת הש״ס.</p>
+    <label class="field">סדר<select><option>זרעים</option><option>מועד</option><option>נשים</option><option>נזיקין</option><option>קדשים</option><option>טהרות</option></select></label>
+    <label class="field">מסכת<select><option>ברכות</option><option>פאה</option><option>דמאי</option></select></label>
+    <div class="seg"><label class="field" style="margin:0">פרק<select><option>א׳</option><option>ב׳</option></select></label><label class="field" style="margin:0">משנה<select><option>א׳</option><option>ב׳</option></select></label></div>`;
+  if(S.ob===4) c=`<h2>מתי התחלת?</h2><p>אם כבר התחלת ללמוד לפני האפליקציה, בחר את התאריך שבו התחלת.</p>
+    <div class="seg"><button id="td" class="${S.obPast?"":"on"}">היום</button><button id="pd" class="${S.obPast?"on":""}">תאריך בעבר</button></div>
+    ${S.obPast?`<label class="field">תאריך התחלה<input type="date" value="2026-09-20"></label>
+      <div class="eyebrow" style="margin:6px 0">סמן אילו ימים למדת בפועל</div>
+      ${[["ח׳ בתשרי","ברכות א׳, א׳–ג׳"],["ט׳ בתשרי","ברכות א׳, ד׳–ב׳, א׳"],["י׳ בתשרי · יוה״כ","ברכות ב׳, ב׳–ד׳"],["י״א בתשרי","ברכות ב׳, ה׳–ז׳"],["י״ב בתשרי","ברכות ב׳, ח׳–ג׳, ב׳"]].map(([d,r],i)=>`<label class="chk"><input type="checkbox" ${i===1?"":"checked"}> ${d}<span class="r">${r}</span></label>`).join("")}
+      <p style="margin-top:10px;font-size:12px">יום שלא סומן לא מקדם את הלימוד. הלימוד של היום מתחיל מהמקום שבו נעצרת.</p>`:""}`;
+  if(S.ob===5) c=`<h2>מיקום והתראות</h2><p>המיקום משמש לחישוב הזריחה, שבה מתחלף יום הלימוד.</p>
+    <button class="btn ghost" style="margin-bottom:12px" id="gps">השתמש במיקום שלי</button>
+    <label class="field">עיר גיבוי (למצב ללא GPS)<select><option>ירושלים</option><option>בני ברק</option><option>בית שמש</option><option>חיפה</option></select></label>
+    <button class="btn ghost" id="nt">אפשר התראות</button>`;
+  view.innerHTML=`<div class="ob"><div class="scroll" style="flex:1">${bar}${c}</div>
+    <div style="display:flex;gap:10px;margin-top:14px">${S.ob>1?`<button class="btn ghost" id="bk" style="width:auto;padding-inline:20px">חזרה</button>`:""}<button class="btn" id="nx">${S.ob===5?"בוא נתחיל":"המשך"}</button></div></div>`;
+  const nm=$("#nm"); if(nm) nm.oninput=()=>S.obName=nm.value||"לומד";
+  if(S.ob===2){ $("#pm").onclick=()=>{S.pace=Math.max(1,S.pace-1);renderOb();}; $("#pp").onclick=()=>{S.pace=Math.min(30,S.pace+1);renderOb();}; }
+  if(S.ob===4){ $("#td").onclick=()=>{S.obPast=false;renderOb();}; $("#pd").onclick=()=>{S.obPast=true;renderOb();}; }
+  if(S.ob===5){ $("#gps").onclick=e=>{e.target.textContent="✓ מיקום נקבע: ירושלים";}; $("#nt").onclick=e=>{e.target.textContent="✓ התראות מאופשרות";}; }
+  const bk=$("#bk"); if(bk) bk.onclick=()=>{S.ob--;renderOb();};
+  $("#nx").onclick=()=>{ if(S.ob<5){S.ob++;renderOb();} else {S.ob=1; pickScen("weekday");} };
+}
+
+/* ---------- controls ---------- */
+function pickScen(s){
+  S.scen=s; S.tab="home"; S.page=0; S.maxSeen=0; S.bottomReached=false; S.done=false;
+  document.querySelectorAll("#scenChips button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.s===s));
+  render();
+}
+document.querySelectorAll("#themeChips button").forEach(b=>b.onclick=()=>{
+  S.theme=b.dataset.t; $("#phone").className="phone "+S.theme;
+  document.querySelectorAll("#themeChips button").forEach(x=>x.setAttribute("aria-pressed",x===b));
+});
+document.querySelectorAll("#scenChips button").forEach(b=>b.onclick=()=>pickScen(b.dataset.s));
+nav.querySelectorAll("button").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
+render();
+</script>
