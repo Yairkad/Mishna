@@ -61,6 +61,9 @@ import app.mishna.core.plan.StudyPlan
 import app.mishna.core.time.JewishDays
 import app.mishna.core.time.Place
 import app.mishna.ui.common.GhostButton
+import app.mishna.ui.common.Picker
+import app.mishna.ui.common.StartPicker
+import app.mishna.ui.common.Stepper
 import app.mishna.ui.common.PrimaryButton
 import app.mishna.ui.theme.LocalBook
 import app.mishna.ui.theme.Sans
@@ -156,61 +159,6 @@ private fun fieldColors() = LocalBook.current.let { c ->
         focusedBorderColor = c.accent, unfocusedBorderColor = c.line, focusedLabelColor = c.accent,
         unfocusedLabelColor = c.muted, cursorColor = c.accent, focusedContainerColor = c.surface, unfocusedContainerColor = c.surface,
     )
-}
-
-@Composable
-private fun Stepper(value: Int, onChange: (Int) -> Unit) {
-    val c = LocalBook.current
-    Row(Modifier.fillMaxWidth().padding(vertical = 18.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-        RoundButton("−") { onChange(value - 1) }
-        Text("$value", fontFamily = Serif, fontSize = 54.sp, color = c.ink, textAlign = TextAlign.Center, modifier = Modifier.width(100.dp))
-        RoundButton("+") { onChange(value + 1) }
-    }
-}
-
-@Composable
-private fun RoundButton(label: String, onClick: () -> Unit) {
-    val c = LocalBook.current
-    Box(
-        Modifier.size(52.dp).clip(CircleShape).background(c.surface).border(1.dp, c.line, CircleShape).clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) { Text(label, fontSize = 24.sp, color = c.ink, fontFamily = Sans) }
-}
-
-@Composable
-private fun <T> Picker(label: String, items: List<T>, selected: T, text: (T) -> String, onSelect: (T) -> Unit, modifier: Modifier = Modifier) {
-    val c = LocalBook.current
-    var open by remember { mutableStateOf(false) }
-    Column(modifier.padding(bottom = 12.dp)) {
-        Text(label, color = c.muted, fontFamily = Sans, fontSize = 13.sp, modifier = Modifier.padding(bottom = 6.dp))
-        Box {
-            Text(
-                text(selected), fontFamily = Sans, fontSize = 16.sp, color = c.ink,
-                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(c.surface)
-                    .border(1.dp, c.line, RoundedCornerShape(12.dp)).clickable { open = true }.padding(12.dp),
-            )
-            DropdownMenu(open, onDismissRequest = { open = false }) {
-                items.forEach { item ->
-                    DropdownMenuItem(text = { Text(text(item), fontFamily = Sans) }, onClick = { onSelect(item); open = false })
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun StartPicker(index: Int, onChange: (Int) -> Unit) {
-    val ref = Mishnayot.ref(index)
-    val seder = Mishnayot.sedarim.first { it.name == ref.seder }
-    val tractate = seder.tractates.first { it.name == ref.tractate }
-    Picker("סדר", Mishnayot.sedarim, seder, { it.name }, { onChange(Mishnayot.indexOf(it.tractates.first().name, 1, 1)) })
-    Picker("מסכת", seder.tractates, tractate, { it.name }, { onChange(Mishnayot.indexOf(it.name, 1, 1)) })
-    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Picker("פרק", (1..tractate.chapterSizes.size).toList(), ref.perek, { Hebrew.numeral(it) },
-            { onChange(Mishnayot.indexOf(tractate.name, it, 1)) }, Modifier.weight(1f))
-        Picker("משנה", (1..tractate.chapterSizes[ref.perek - 1]).toList(), ref.mishna, { Hebrew.numeral(it) },
-            { onChange(Mishnayot.indexOf(tractate.name, ref.perek, it)) }, Modifier.weight(1f))
-    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

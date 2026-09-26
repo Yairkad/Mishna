@@ -30,7 +30,15 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.mishna.core.state.ThemeMode
 import app.mishna.core.time.JewishDays
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.zIndex
+import app.mishna.ui.history.HistoryScreen
 import app.mishna.ui.home.HomeScreen
+import app.mishna.ui.settings.SettingsScreen
 import app.mishna.ui.onboarding.OnboardingScreen
 import app.mishna.ui.study.ReadingPrefs
 import app.mishna.ui.study.StudyScreen
@@ -73,7 +81,13 @@ private fun App(vm: AppViewModel) {
     val state by vm.state.collectAsStateWithLifecycle()
     val today by vm.studyDate.collectAsStateWithLifecycle()
     val plan = state.plan
+    val message by vm.message.collectAsStateWithLifecycle()
+    val snackbar = remember { SnackbarHostState() }
+    LaunchedEffect(message) {
+        message?.let { snackbar.showSnackbar(it); vm.messageShown() }
+    }
     Box(Modifier.fillMaxSize().background(c.bg).systemBarsPadding()) {
+        SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(bottom = 80.dp).zIndex(1f))
         if (plan == null) {
             OnboardingScreen(today) { name, place, p -> vm.finishOnboarding(name, place, p) }
             return@Box
@@ -102,11 +116,20 @@ private fun App(vm: AppViewModel) {
                         splitRatio = state.prefs.splitRatio,
                         onSplitRatio = { r -> vm.updatePrefs { it.copy(splitRatio = r) } },
                         onPageChange = vm::setReadingPage,
-                        onFinish = { vm.completeToday(); showHome = true },
+                        onFinish = { vm.completeToday(); showHome = true; tab = Tab.HISTORY },
                         onShiftDay = vm::shiftDay,
                     )
-                    tab == Tab.HISTORY -> ComingSoon("היסטוריה")
-                    else -> ComingSoon("הגדרות")
+                    tab == Tab.HISTORY -> HistoryScreen(plan, today)
+                    else -> SettingsScreen(
+                        state = state, today = today, versionName = BuildConfig.VERSION_NAME,
+                        onPrefs = { change -> vm.updatePrefs(change) },
+                        onPlace = vm::setPlace,
+                        onPace = vm::changePace,
+                        onMoveTo = vm::moveTo,
+                        onExport = vm::exportBackup,
+                        onImport = vm::importBackup,
+                        onReset = vm::reset,
+                    )
                 }
             }
             NavigationBar(containerColor = c.surface, tonalElevation = 0.dp, modifier = Modifier.height(72.dp)) {
@@ -128,13 +151,5 @@ private fun App(vm: AppViewModel) {
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun ComingSoon(name: String) {
-    val c = LocalBook.current
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("$name · בשלב הבא", color = c.muted, fontFamily = Serif, fontSize = 18.sp)
     }
 }

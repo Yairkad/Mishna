@@ -1,6 +1,7 @@
 package app.mishna
 
 import android.app.Application
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import app.mishna.core.plan.CompletionMode
@@ -11,9 +12,11 @@ import app.mishna.core.state.Prefs
 import app.mishna.core.time.Place
 import app.mishna.core.time.StudyClock
 import app.mishna.data.StateStore
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.ZonedDateTime
 
@@ -52,6 +55,52 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun setReadingPage(page: Int) = viewModelScope.launch {
         store.update { it.copy(readingDate = studyDate.value, readingPage = page) }
     }
+
+    fun changePace(pace: Int) = updatePlan { it.changePace(pace, studyDate.value) }
+
+    fun moveTo(index: Int) = updatePlan { it.moveTo(index, studyDate.value) }
+
+    fun setPlace(place: Place) = viewModelScope.launch {
+        store.update { it.copy(place = place) }
+        refresh()
+    }
+
+    fun reset() = viewModelScope.launch { store.update { AppState() } }
+
+    /** Writes the whole state as JSON to a file the user picked (SPEC §9). */
+    fun exportBackup(uri: Uri) = viewModelScope.launch {
+        val ok = withContext(Dispatchers.IO) {
+            runCatching {
+                getApplication<Application>().contentResolver.openOutputStream(uri, "wt")!!.use {
+                    it.write(state.value.encode().toByteArray())
+                }
+            }.isSuccess
+        }
+        _message.value = if (ok) "הגיבוי נשמר" else "שמירת הגיבוי נכשלה"
+    }
+
+    /** Replaces the whole state with a backup file. A file that is not a valid backup changes nothing. */
+    fun importBackup(uri: Uri) = viewModelScope.launch {
+        val restored = withContext(Dispatchers.IO) {
+            runCatching {
+                getApplication<Application>().contentResolver.openInputStream(uri)!!.use {
+                    AppState.decode(it.readBytes().decodeToString())
+                }
+            }.getOrNull()
+        }
+        if (restored?.plan == null) {
+            _message.value = "הקובץ אינו גיבוי תקין של האפליקציה"
+            return@launch
+        }
+        store.update { restored }
+        refresh()
+        _message.value = "הנתונים שוחזרו"
+    }
+
+    private val _message = MutableStateFlow<String?>(null)
+    /** One-off messages shown as a snackbar. */
+    val message: StateFlow<String?> = _message
+    fun messageShown() { _message.value = null }
 
     fun updatePrefs(change: (Prefs) -> Prefs) = viewModelScope.launch {
         store.update { it.copy(prefs = change(it.prefs)) }
