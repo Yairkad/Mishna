@@ -10,6 +10,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontVariation
@@ -47,6 +48,7 @@ val NightBook = BookColors(
 
 val LocalBook = staticCompositionLocalOf { LightBook }
 
+@OptIn(ExperimentalTextApi::class)
 private fun variable(res: Int, weight: Int) =
     Font(res, FontWeight(weight), variationSettings = FontVariation.Settings(FontVariation.weight(weight)))
 
