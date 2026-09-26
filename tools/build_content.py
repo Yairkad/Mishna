@@ -49,8 +49,6 @@ SEDARIM = [
         ("Zavim", "זבים"), ("Tevul Yom", "טבול יום"), ("Yadayim", "ידים"), ("Oktzin", "עוקצין")]),
 ]
 
-# Pirkei Avot chapter 6 (Kinyan Torah) is a baraita, not part of the Mishna.
-AVOT_CHAPTERS = 5
 
 BARTENURA = 1
 IKAR_TYT = 2
@@ -111,8 +109,6 @@ def main():
         for name, he in tractates:
             t = title(name)
             text = fetch(path(cat, t))
-            if name == "Avot":
-                text = text[:AVOT_CHAPTERS]
             comms = {}
             for src, (group, author) in {BARTENURA: ("Rishonim on Mishnah", "Bartenura"),
                                          IKAR_TYT: ("Acharonim on Mishnah", "Ikar Tosafot Yom Tov")}.items():

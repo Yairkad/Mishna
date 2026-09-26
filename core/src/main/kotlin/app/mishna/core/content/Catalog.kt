@@ -47,7 +47,7 @@ internal val SEDARIM: List<Seder> = listOf(
         Tractate("שבועות", intArrayOf(7, 5, 11, 13, 5, 7, 8, 6)),
         Tractate("עדיות", intArrayOf(14, 10, 12, 12, 7, 3, 9, 7)),
         Tractate("עבודה זרה", intArrayOf(9, 7, 10, 12, 12)),
-        Tractate("אבות", intArrayOf(18, 16, 18, 22, 23)),
+        Tractate("אבות", intArrayOf(18, 16, 18, 22, 23, 11)),
         Tractate("הוריות", intArrayOf(5, 7, 8)),
     )),
     Seder("קדשים", listOf(
@@ -79,4 +79,4 @@ internal val SEDARIM: List<Seder> = listOf(
     )),
 )
 
-internal const val TOTAL_MISHNAYOT: Int = 4181
+internal const val TOTAL_MISHNAYOT: Int = 4192

@@ -6,7 +6,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class ContentTest {
-    @Test fun total() = assertEquals(4181, Mishnayot.total)
+    @Test fun total() = assertEquals(4192, Mishnayot.total)
 
     @Test fun firstAndLast() {
         assertEquals("ברכות", Mishnayot.ref(0).tractate)

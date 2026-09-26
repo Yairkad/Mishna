@@ -94,13 +94,13 @@ class StudyPlanTest {
         val s = p.stats(d0)
         assertEquals(1, s.completedDays)
         assertEquals(3, s.learned)
-        assertEquals(4178, s.remaining)
-        // 4178 / 3 = 1393 more days starting tomorrow.
-        assertEquals(d0.plusDays(1393), s.estimatedFinish)
+        assertEquals(4189, s.remaining)
+        // ⌈4189 / 3⌉ = 1397 more days starting tomorrow.
+        assertEquals(d0.plusDays(1397), s.estimatedFinish)
     }
 
     @Test fun finishAndNewCycle() {
-        val last = StudyPlan.create(d0, 4179, 3, d0)
+        val last = StudyPlan.create(d0, 4190, 3, d0)
         assertEquals(2, last.day(d0)!!.count)
         val done = last.complete(d0, APP)
         assertTrue(done.finished)
