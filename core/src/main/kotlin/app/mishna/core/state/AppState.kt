@@ -27,6 +27,8 @@ enum class LineSpacing(val factor: Float) { COMPACT(1.55f), NORMAL(1.85f), WIDE(
 data class Prefs(
     val fontScale: Float = 1f,
     val lineSpacing: LineSpacing = LineSpacing.NORMAL,
+    /** Share of the study screen given to the mishna; the commentary gets the rest. */
+    val splitRatio: Float = 0.5f,
     val showIkarTosafotYomTov: Boolean = true,
     val keepScreenOn: Boolean = true,
     val theme: ThemeMode = ThemeMode.SYSTEM,

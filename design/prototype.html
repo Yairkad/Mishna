@@ -148,6 +148,28 @@ details.comm .body{padding:0 14px 14px;font-family:var(--serif);font-size:calc(1
 .chk input{width:18px;height:18px;accent-color:var(--p-accent)}
 .chk .r{font-family:var(--serif);margin-inline-start:auto;color:var(--p-muted)}
 .spacer{flex:1}
+/* study layouts */
+.slim{flex:none;display:grid;grid-template-columns:48px 1fr 48px;gap:8px;align-items:center;padding:8px 12px 10px;border-top:1px solid var(--p-line);background:var(--p-bg)}
+.slim .arrow{width:48px;height:44px;border-radius:12px;border:1px solid var(--p-line);background:var(--p-surface);color:var(--p-ink);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.slim .arrow svg{width:20px;height:20px}
+.slim .arrow[disabled]{opacity:.3;cursor:default}
+.slim .mid{text-align:center;font-size:13px;color:var(--p-muted)}
+.slim .mid b{font-family:var(--serif);font-size:16px;color:var(--p-ink);font-weight:500}
+.slim .fin{font:inherit;font-weight:500;font-size:15px;height:44px;border:0;border-radius:12px;width:100%;background:var(--p-accent);color:var(--p-accent-ink);cursor:pointer}
+.slim .fin[disabled]{background:var(--p-soft);color:var(--p-muted);font-size:13px;cursor:default}
+.pane{overflow-y:auto;min-height:0}
+.divider{flex:none;height:18px;display:flex;align-items:center;justify-content:center;cursor:row-resize;touch-action:none;background:var(--p-bg);border-top:1px solid var(--p-line);border-bottom:1px solid var(--p-line)}
+.divider span{width:40px;height:4px;border-radius:2px;background:var(--p-muted);opacity:.5}
+.ctabs{flex:none;display:flex;gap:6px;padding:8px 16px 0;background:var(--p-comm)}
+.ctabs button{font:inherit;font-size:13px;border:0;background:transparent;color:var(--p-muted);padding:6px 10px;border-radius:10px 10px 0 0;cursor:pointer}
+.ctabs button.on{background:var(--p-bg);color:var(--p-accent);font-weight:500}
+.cbody{font-family:var(--serif);font-size:calc(16px * var(--fs,1));line-height:calc(var(--lh,1.85) - .1);padding:12px 18px 18px}
+.cbody p{margin:0 0 8px}
+.sheetwrap{position:relative;flex:1;min-height:0;display:flex;flex-direction:column}
+.csheet{position:absolute;left:0;right:0;bottom:0;background:var(--p-comm);border-top:1px solid var(--p-line);border-radius:18px 18px 0 0;box-shadow:0 -8px 20px -12px rgba(0,0,0,.35);display:flex;flex-direction:column;transition:height .2s}
+.csheet .grab{flex:none;padding:8px 16px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px}
+.csheet .grab span{width:40px;height:4px;border-radius:2px;background:var(--p-muted);opacity:.5}
+.csheet .grab div{align-self:stretch;display:flex;justify-content:space-between;font-size:13px;color:var(--p-muted)}
 @media (prefers-reduced-motion:reduce){.sw::after{transition:none}}
 </style>
 
@@ -166,6 +188,14 @@ details.comm .body{padding:0 14px 14px;font-family:var(--serif);font-size:calc(1
       </div>
     </div>
     <div class="grp">
+      <label class="h">פריסת מסך הלימוד</label>
+      <div class="chips" id="layoutChips">
+        <button data-l="split" aria-pressed="true">מסך חצוי</button>
+        <button data-l="sheet" aria-pressed="false">פירוש נשלף</button>
+        <button data-l="classic" aria-pressed="false">רציף (הנוכחי)</button>
+      </div>
+    </div>
+    <div class="grp">
       <label class="h">תרחיש</label>
       <div class="chips" id="scenChips">
         <button data-s="weekday" aria-pressed="true">יום חול</button>
@@ -178,6 +208,7 @@ details.comm .body{padding:0 14px 14px;font-family:var(--serif);font-size:calc(1
       <b>מה לנסות</b>
       <ul>
         <li>במסך הלימוד: דפדף עד המשנה השלישית וגלול עד הסוף. רק אז נפתח כפתור הסיום.</li>
+        <li>במסך חצוי: גרור את הפס האמצעי כדי לשנות את היחס. בפירוש נשלף: לחץ על הלשונית למטה.</li>
         <li>הכפתור ⋯ בראש מסך הלימוד: יום קדימה / אחורה.</li>
         <li>בהיסטוריה: לחיצה על יום בלוח.</li>
         <li>בהגדרות: פריט מתקדם דורש אישור בשני שלבים.</li>
@@ -211,7 +242,7 @@ const M = [
   {n:"משנה ג׳", t:"בֵּית שַׁמַּאי אוֹמְרִים, בָּעֶרֶב כָּל אָדָם יַטּוּ וְיִקְרְאוּ, וּבַבֹּקֶר יַעַמְדוּ, שֶׁנֶּאֱמַר וּבְשָׁכְבְּךָ וּבְקוּמֶךָ. וּבֵית הִלֵּל אוֹמְרִים, כָּל אָדָם קוֹרֵא כְדַרְכּוֹ, שֶׁנֶּאֱמַר וּבְלֶכְתְּךָ בַדֶּרֶךְ. אִם כֵּן, לָמָּה נֶאֱמַר וּבְשָׁכְבְּךָ וּבְקוּמֶךָ, בְּשָׁעָה שֶׁבְּנֵי אָדָם שׁוֹכְבִים, וּבְשָׁעָה שֶׁבְּנֵי אָדָם עוֹמְדִים. אָמַר רַבִּי טַרְפוֹן, אֲנִי הָיִיתִי בָא בַדֶּרֶךְ, וְהִטֵּיתִי לִקְרוֹת כְּדִבְרֵי בֵית שַׁמַּאי, וְסִכַּנְתִּי בְעַצְמִי מִפְּנֵי הַלִּסְטִים. אָמְרוּ לוֹ, כְּדַאי הָיִיתָ לָחוּב בְּעַצְמְךָ, שֶׁעָבַרְתָּ עַל דִּבְרֵי בֵית הִלֵּל.",
    b:[["יטו.","על צדיהם."],["כדאי היית לחוב בעצמך.","ראוי היית להתחייב בנפשך."]]}
 ];
-const S = {theme:"t-book", scen:"weekday", tab:"home", page:0, maxSeen:0, bottomReached:false, done:false, fs:1, lh:"normal", showTyt:true, notif:true, wake:true, backup:true, pace:3, ob:1, obPast:false, obName:"יאיר"};
+const S = {theme:"t-book", scen:"weekday", tab:"home", page:0, maxSeen:0, bottomReached:false, done:false, fs:1, lh:"normal", layout:"split", split:0.5, sheet:1, ctab:0, showTyt:true, notif:true, wake:true, backup:true, pace:3, ob:1, obPast:false, obName:"יאיר"};
 const LH={compact:1.55, normal:1.85, wide:2.25};
 const $ = s=>document.querySelector(s);
 const view = $("#view"), overlay = $("#overlay"), nav = $("#nav");
@@ -272,7 +303,79 @@ function renderHome(){
 }
 
 /* ---------- study ---------- */
+const ARW={prev:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10h14M12 5l5 5-5 5"/></svg>',next:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 10H3M8 5l-5 5 5 5"/></svg>'};
+function commBodies(m){
+  const bart = m.b.map(([d,x])=>`<p><span class="dh">${d}</span> ${x}</p>`).join("")+`<div class="sample">קטע לדוגמה</div>`;
+  const tyt = `<p><span class="dh">${m.b[0][0]}</span> פירוש קצר לדוגמה. באפליקציה יוצג כאן הטקסט המלא מ-Sefaria.</p><div class="sample">קטע לדוגמה</div>`;
+  return S.showTyt ? [["ברטנורא",bart],["עיקר תוספות יום טוב",tyt]] : [["ברטנורא",bart]];
+}
+function slimFooter(last){
+  let mid;
+  if(S.done) mid=`<button class="fin" disabled>הלימוד הושלם ✓</button>`;
+  else if(last) mid=`<button class="fin" id="fin" ${S.bottomReached?"":"disabled"}>${S.bottomReached?"סיימתי את הלימוד היום":"גלול עד סוף המשנה לסיום"}</button>`;
+  else mid=`<div class="mid"><b>משנה ${S.page+1}</b> מתוך ${M.length}</div>`;
+  return `<div class="slim"><button class="arrow" id="prev" aria-label="המשנה הקודמת" ${S.page===0?"disabled":""}>${ARW.prev}</button>${mid}<button class="arrow" id="next" aria-label="המשנה הבאה" ${last?"disabled":""}>${ARW.next}</button></div>`;
+}
+function studyHead(m){
+  return `<div class="shead"><div class="top">
+        <div><div class="eyebrow">סדר זרעים · יום 45 · י״ג בתשרי</div><div class="ref">ברכות פרק א׳ · ${m.n}</div></div>
+        <button class="iconbtn" id="more" aria-label="אפשרויות">⋯</button></div>
+      <div class="dots">${M.map((_,i)=>`<span class="${i===S.page?"on":i<=S.maxSeen?"seen":""}"></span>`).join("")}</div></div>`;
+}
+function wireStudy(sc, last){
+  const unlock=()=>{S.bottomReached=true; const f=$("#fin"); if(f){f.disabled=false; f.textContent="סיימתי את הלימוד היום";}};
+  const check=()=>{ if(last && !S.bottomReached && sc.scrollTop+sc.clientHeight>=sc.scrollHeight-6) unlock(); };
+  sc.addEventListener("scroll",check); requestAnimationFrame(check);
+  const go=d=>{S.page=Math.max(0,Math.min(M.length-1,S.page+d)); S.maxSeen=Math.max(S.maxSeen,S.page); renderStudy();};
+  $("#prev").onclick=()=>go(-1); $("#next").onclick=()=>go(1);
+  let x0=null; sc.addEventListener("touchstart",e=>x0=e.touches[0].clientX,{passive:true});
+  sc.addEventListener("touchend",e=>{if(x0==null)return; const dx=e.changedTouches[0].clientX-x0; if(Math.abs(dx)>60) go(dx>0?1:-1); x0=null;});
+  const fin=$("#fin"); if(fin) fin.onclick=showDone;
+  $("#more").onclick=showShift;
+  view.querySelectorAll("[data-ct]").forEach(b=>b.onclick=()=>{S.ctab=+b.dataset.ct; renderStudy();});
+}
 function renderStudy(){
+  if(S.layout==="split") return renderSplit();
+  if(S.layout==="sheet") return renderSheet();
+  renderClassic();
+}
+function tabsHtml(cs){ return cs.length>1?`<div class="ctabs">${cs.map(([n],i)=>`<button data-ct="${i}" class="${i===Math.min(S.ctab,cs.length-1)?"on":""}">${n}</button>`).join("")}</div>`:`<div class="ctabs"><button class="on">${cs[0][0]}</button></div>`; }
+function renderSplit(){
+  const m=M[S.page], last=S.page===M.length-1, cs=commBodies(m), ct=Math.min(S.ctab,cs.length-1);
+  view.innerHTML = studyHead(m)+`
+    <div style="flex:1;min-height:0;display:flex;flex-direction:column;--fs:${S.fs};--lh:${LH[S.lh]}" id="splitbox">
+      <div class="pane" id="sc" style="flex:${S.split} 1 0"><div class="pad"><p class="mtext" style="margin:0">${m.t}</p></div></div>
+      <div class="divider" id="dv" aria-label="גרור לשינוי הגודל"><span></span></div>
+      <div style="flex:${1-S.split} 1 0;min-height:0;display:flex;flex-direction:column;background:var(--p-bg)">
+        ${tabsHtml(cs)}
+        <div class="pane cbody" style="flex:1">${cs[ct][1]}</div>
+      </div>
+    </div>`+slimFooter(last);
+  wireStudy($("#sc"), last);
+  const dv=$("#dv"), box=$("#splitbox");
+  dv.addEventListener("pointerdown",e=>{
+    dv.setPointerCapture(e.pointerId);
+    const move=ev=>{const r=box.getBoundingClientRect(); S.split=Math.min(.8,Math.max(.2,(ev.clientY-r.top)/r.height));
+      $("#sc").style.flex=`${S.split} 1 0`; dv.nextElementSibling.style.flex=`${1-S.split} 1 0`;};
+    const up=()=>{dv.removeEventListener("pointermove",move); dv.removeEventListener("pointerup",up); requestAnimationFrame(()=>$("#sc").dispatchEvent(new Event("scroll")));};
+    dv.addEventListener("pointermove",move); dv.addEventListener("pointerup",up);
+  });
+}
+function renderSheet(){
+  const m=M[S.page], last=S.page===M.length-1, cs=commBodies(m), ct=Math.min(S.ctab,cs.length-1);
+  const H=["58px","48%","88%"][S.sheet];
+  view.innerHTML = studyHead(m)+`
+    <div class="sheetwrap" style="--fs:${S.fs};--lh:${LH[S.lh]}">
+      <div class="pane" id="sc" style="flex:1;padding-bottom:64px"><div class="pad"><p class="mtext" style="margin:0">${m.t}</p></div></div>
+      <div class="csheet" style="height:${H}">
+        <div class="grab" id="grab"><span></span><div><span style="width:auto;height:auto;background:none;opacity:1">${S.sheet===0?"פירושים":cs[ct][0]}</span><span style="width:auto;height:auto;background:none;opacity:1">${S.sheet===2?"▼":"▲"}</span></div></div>
+        ${S.sheet>0?tabsHtml(cs)+`<div class="pane cbody" style="flex:1;background:var(--p-bg)">${cs[ct][1]}</div>`:""}
+      </div>
+    </div>`+slimFooter(last);
+  wireStudy($("#sc"), last);
+  $("#grab").onclick=()=>{S.sheet=(S.sheet+1)%3; renderStudy();};
+}
+function renderClassic(){
   const m = M[S.page], last = S.page===M.length-1;
   const bart = m.b.map(([d,x])=>`<p style="margin:0 0 8px"><span class="dh">${d}</span> ${x}</p>`).join("");
   view.innerHTML = `
@@ -471,6 +574,10 @@ document.querySelectorAll("#themeChips button").forEach(b=>b.onclick=()=>{
   document.querySelectorAll("#themeChips button").forEach(x=>x.setAttribute("aria-pressed",x===b));
 });
 document.querySelectorAll("#scenChips button").forEach(b=>b.onclick=()=>pickScen(b.dataset.s));
+document.querySelectorAll("#layoutChips button").forEach(b=>b.onclick=()=>{
+  S.layout=b.dataset.l; document.querySelectorAll("#layoutChips button").forEach(x=>x.setAttribute("aria-pressed",x===b));
+  if(S.scen==="onboarding") pickScen("weekday"); S.tab="study"; render();
+});
 nav.querySelectorAll("button").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
 render();
 </script>

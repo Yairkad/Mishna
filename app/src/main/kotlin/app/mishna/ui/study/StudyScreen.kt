@@ -1,18 +1,21 @@
 package app.mishna.ui.study
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -20,14 +23,19 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -35,7 +43,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -47,13 +59,9 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.key
-import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.text.style.TextAlign
+import app.mishna.R
 import app.mishna.core.content.Mishnayot
 import app.mishna.ui.common.GhostButton
-import app.mishna.ui.common.PrimaryButton
 import app.mishna.ui.theme.LocalBook
 import app.mishna.ui.theme.Sans
 import app.mishna.ui.theme.Serif
@@ -61,7 +69,13 @@ import kotlinx.coroutines.launch
 
 data class ReadingPrefs(val fontScale: Float = 1f, val lineHeight: Float = 1.85f, val showIkarTosafotYomTov: Boolean = true)
 
-/** The study screen (DESIGN.md §3.3). */
+private const val MIN_SPLIT = 0.2f
+private const val MAX_SPLIT = 0.8f
+
+/**
+ * The study screen (DESIGN.md §3.3): mishna on top, commentary below, a draggable divider
+ * between them, and one slim navigation row at the bottom.
+ */
 @Composable
 fun StudyScreen(
     start: Int,
@@ -72,6 +86,8 @@ fun StudyScreen(
     prefs: ReadingPrefs,
     keepScreenOn: Boolean,
     initialPage: Int,
+    splitRatio: Float,
+    onSplitRatio: (Float) -> Unit,
     onPageChange: (Int) -> Unit,
     onFinish: () -> Unit,
     onShiftDay: (forward: Boolean) -> Unit,
@@ -93,6 +109,8 @@ fun StudyScreen(
         val pager = rememberPagerState(initialPage = initialPage.coerceIn(0, ui.pages.lastIndex)) { ui.pages.size }
         val scope = rememberCoroutineScope()
         var bottomReached by rememberSaveable { mutableStateOf(false) }
+        var ratio by remember { mutableFloatStateOf(splitRatio.coerceIn(MIN_SPLIT, MAX_SPLIT)) }
+        var commentaryTab by rememberSaveable { mutableIntStateOf(0) }
         var summary by remember { mutableStateOf(false) }
         var shiftSheet by remember { mutableStateOf(false) }
         var confirmShift by remember { mutableStateOf<Boolean?>(null) }
@@ -100,7 +118,8 @@ fun StudyScreen(
         LaunchedEffect(pager.currentPage) { onPageChange(pager.currentPage) }
 
         Column(Modifier.fillMaxSize().background(c.bg)) {
-            Column(Modifier.fillMaxWidth().padding(start = 18.dp, end = 8.dp, top = 10.dp, bottom = 10.dp)) {
+            // Header
+            Column(Modifier.fillMaxWidth().padding(start = 18.dp, end = 8.dp, top = 8.dp, bottom = 8.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text("${ui.seder} · יום $dayNumber · $hebrewDate", color = c.muted, fontSize = 12.sp, fontFamily = Sans)
@@ -108,7 +127,7 @@ fun StudyScreen(
                     }
                     TextButton(onClick = { shiftSheet = true }) { Text("⋯", color = c.muted, fontSize = 22.sp) }
                 }
-                Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)) {
+                Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)) {
                     ui.pages.indices.forEach { i ->
                         val color = when {
                             i == pager.currentPage -> c.accent
@@ -122,29 +141,28 @@ fun StudyScreen(
             Box(Modifier.fillMaxWidth().height(1.dp).background(c.line))
 
             HorizontalPager(state = pager, modifier = Modifier.weight(1f)) { page ->
-                val scroll = rememberScrollState()
-                val atBottom by remember { derivedStateOf { scroll.value >= scroll.maxValue - 8 } }
-                LaunchedEffect(atBottom) { if (page == ui.pages.lastIndex && atBottom) bottomReached = true }
-                MishnaPageView(ui.pages[page], prefs, Modifier.verticalScroll(scroll))
+                SplitPage(
+                    page = ui.pages[page],
+                    prefs = prefs,
+                    ratio = ratio,
+                    onRatio = { ratio = it },
+                    onRatioDone = { onSplitRatio(ratio) },
+                    tab = commentaryTab,
+                    onTab = { commentaryTab = it },
+                    isCurrent = page == pager.currentPage,
+                    onMishnaEnd = { if (page == ui.pages.lastIndex) bottomReached = true },
+                )
             }
 
-            Box(Modifier.fillMaxWidth().height(1.dp).background(c.line))
-            if (last && !bottomReached && !done) {
-                Text("גלול עד סוף המשנה כדי לסיים", color = c.muted, fontSize = 11.sp, fontFamily = Sans,
-                    modifier = Modifier.fillMaxWidth().padding(top = 6.dp), textAlign = TextAlign.Center)
-            }
-            Column(Modifier.padding(horizontal = 16.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    PagerButton("→  המשנה הקודמת", enabled = pager.currentPage > 0, modifier = Modifier.weight(1f)) {
-                        scope.launch { pager.animateScrollToPage(pager.currentPage - 1) }
-                    }
-                    Text("${pager.currentPage + 1} / ${ui.pages.size}", color = c.muted, fontFamily = Serif, fontSize = 15.sp)
-                    PagerButton("המשנה הבאה  ←", enabled = !last, modifier = Modifier.weight(1f)) {
-                        scope.launch { pager.animateScrollToPage(pager.currentPage + 1) }
-                    }
-                }
-                PrimaryButton(if (done) "הלימוד הושלם ✓" else "סיימתי את הלימוד היום", enabled = last && bottomReached && !done) { summary = true }
-            }
+            SlimFooter(
+                page = pager.currentPage,
+                pages = ui.pages.size,
+                done = done,
+                canFinish = bottomReached,
+                onPrev = { scope.launch { pager.animateScrollToPage(pager.currentPage - 1) } },
+                onNext = { scope.launch { pager.animateScrollToPage(pager.currentPage + 1) } },
+                onFinish = { summary = true },
+            )
         }
 
         if (summary) {
@@ -185,53 +203,137 @@ fun StudyScreen(
 }
 
 @Composable
-private fun PagerButton(label: String, enabled: Boolean, modifier: Modifier, onClick: () -> Unit) {
+private fun SplitPage(
+    page: MishnaPage,
+    prefs: ReadingPrefs,
+    ratio: Float,
+    onRatio: (Float) -> Unit,
+    onRatioDone: () -> Unit,
+    tab: Int,
+    onTab: (Int) -> Unit,
+    isCurrent: Boolean,
+    onMishnaEnd: () -> Unit,
+) {
     val c = LocalBook.current
-    OutlinedButton(
+    val density = LocalDensity.current
+    val commentaries = buildList {
+        page.bartenura?.let { add("ברטנורא" to it) }
+        if (prefs.showIkarTosafotYomTov) page.ikarTosafotYomTov?.let { add("עיקר תוספות יום טוב" to it) }
+    }
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val totalPx = with(density) { maxHeight.toPx() }
+        val drag = rememberDraggableState { delta -> onRatio((ratio + delta / totalPx).coerceIn(MIN_SPLIT, MAX_SPLIT)) }
+        Column(Modifier.fillMaxSize()) {
+            // Mishna: finishing needs only this pane scrolled to its end.
+            val scroll = rememberScrollState()
+            val atEnd by remember { derivedStateOf { scroll.value >= scroll.maxValue - 8 } }
+            // Only the page on screen counts; the pager may compose the next page early.
+            LaunchedEffect(atEnd, isCurrent) { if (atEnd && isCurrent) onMishnaEnd() }
+            Box(Modifier.fillMaxWidth().weight(ratio).verticalScroll(scroll)) {
+                Text(
+                    page.text,
+                    color = c.ink,
+                    style = TextStyle(fontFamily = Serif, fontSize = (21 * prefs.fontScale).sp, lineHeight = prefs.lineHeight.em),
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
+                )
+            }
+
+            // Divider: drag to resize.
+            Box(
+                Modifier.fillMaxWidth().height(20.dp).background(c.bg)
+                    .draggable(drag, Orientation.Vertical, onDragStopped = { onRatioDone() }),
+                contentAlignment = Alignment.Center,
+            ) {
+                Box(Modifier.fillMaxWidth().height(1.dp).background(c.line).align(Alignment.TopCenter))
+                Box(Modifier.width(40.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(c.muted.copy(alpha = .5f)))
+                Box(Modifier.fillMaxWidth().height(1.dp).background(c.line).align(Alignment.BottomCenter))
+            }
+
+            // Commentary
+            Column(Modifier.fillMaxWidth().weight(1f - ratio).background(c.soft.copy(alpha = .45f))) {
+                if (commentaries.isEmpty()) {
+                    Text("אין פירוש למשנה זו", color = c.muted, fontFamily = Sans, fontSize = 14.sp, modifier = Modifier.padding(18.dp))
+                } else {
+                    val current = tab.coerceIn(0, commentaries.lastIndex)
+                    Row(Modifier.padding(start = 12.dp, top = 6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        commentaries.forEachIndexed { i, (name, _) ->
+                            val on = i == current
+                            Text(
+                                name, fontFamily = Sans, fontSize = 13.sp,
+                                fontWeight = if (on) FontWeight.Medium else FontWeight.Normal,
+                                color = if (on) c.accent else c.muted,
+                                modifier = Modifier.clip(RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
+                                    .background(if (on) c.bg else c.bg.copy(alpha = 0f))
+                                    .clickable { onTab(i) }.padding(horizontal = 12.dp, vertical = 7.dp),
+                            )
+                        }
+                    }
+                    Box(Modifier.fillMaxSize().background(c.bg).verticalScroll(rememberScrollState())) {
+                        Text(
+                            boldMarkup(commentaries[current].second),
+                            color = c.ink,
+                            style = TextStyle(fontFamily = Serif, fontSize = (16 * prefs.fontScale).sp, lineHeight = (prefs.lineHeight - .1f).em),
+                            modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SlimFooter(
+    page: Int,
+    pages: Int,
+    done: Boolean,
+    canFinish: Boolean,
+    onPrev: () -> Unit,
+    onNext: () -> Unit,
+    onFinish: () -> Unit,
+) {
+    val c = LocalBook.current
+    val last = page == pages - 1
+    Box(Modifier.fillMaxWidth().height(1.dp).background(c.line))
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        // In RTL the first item sits on the right: "previous" points right, "next" points left.
+        ArrowButton(R.drawable.ic_arrow_right, "המשנה הקודמת", enabled = page > 0, onClick = onPrev)
+        Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+            when {
+                done -> FooterButton("הלימוד הושלם ✓", enabled = false) {}
+                last -> FooterButton(if (canFinish) "סיימתי את הלימוד היום" else "גלול עד סוף המשנה לסיום", enabled = canFinish, onClick = onFinish)
+                else -> Text("משנה ${page + 1} מתוך $pages", color = c.muted, fontFamily = Sans, fontSize = 14.sp)
+            }
+        }
+        ArrowButton(R.drawable.ic_arrow_left, "המשנה הבאה", enabled = !last, onClick = onNext)
+    }
+}
+
+@Composable
+private fun ArrowButton(icon: Int, label: String, enabled: Boolean, onClick: () -> Unit) {
+    val c = LocalBook.current
+    Box(
+        Modifier.size(width = 48.dp, height = 44.dp).alpha(if (enabled) 1f else .3f)
+            .clip(RoundedCornerShape(12.dp)).background(c.surface).border(1.dp, c.line, RoundedCornerShape(12.dp))
+            .clickable(enabled = enabled, onClickLabel = label, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) { Icon(painterResource(icon), contentDescription = label, tint = c.ink, modifier = Modifier.size(20.dp)) }
+}
+
+@Composable
+private fun FooterButton(text: String, enabled: Boolean, onClick: () -> Unit) {
+    val c = LocalBook.current
+    Button(
         onClick = onClick,
         enabled = enabled,
-        modifier = modifier.height(42.dp),
+        modifier = Modifier.fillMaxWidth().height(44.dp),
         shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, c.line),
-        colors = ButtonDefaults.outlinedButtonColors(containerColor = c.surface, contentColor = c.ink, disabledContainerColor = c.surface.copy(alpha = .35f), disabledContentColor = c.muted.copy(alpha = .5f)),
-    ) { Text(label, fontFamily = Sans, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1) }
-}
-
-@Composable
-private fun MishnaPageView(page: MishnaPage, prefs: ReadingPrefs, modifier: Modifier) {
-    val c = LocalBook.current
-    Column(modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 18.dp)) {
-        Text(
-            page.text,
-            color = c.ink,
-            style = TextStyle(fontFamily = Serif, fontSize = (21 * prefs.fontScale).sp, lineHeight = prefs.lineHeight.em),
-        )
-        Spacer(Modifier.height(18.dp))
-        page.bartenura?.let { Commentary("ברטנורא", it, prefs, initiallyOpen = true) }
-        if (prefs.showIkarTosafotYomTov) page.ikarTosafotYomTov?.let { Commentary("עיקר תוספות יום טוב", it, prefs, initiallyOpen = false) }
-    }
-}
-
-@Composable
-private fun Commentary(name: String, body: String, prefs: ReadingPrefs, initiallyOpen: Boolean) {
-    val c = LocalBook.current
-    var open by rememberSaveable(name) { mutableStateOf(initiallyOpen) }
-    Column(
-        Modifier.fillMaxWidth().padding(bottom = 10.dp).clip(RoundedCornerShape(14.dp)).background(c.soft.copy(alpha = .6f)),
-    ) {
-        Row(Modifier.fillMaxWidth().clickable { open = !open }.padding(horizontal = 14.dp, vertical = 12.dp)) {
-            Text(name, color = c.ink, fontFamily = Sans, fontWeight = FontWeight.Medium, fontSize = 14.sp, modifier = Modifier.weight(1f))
-            Text(if (open) "–" else "+", color = c.muted, fontFamily = Sans)
-        }
-        AnimatedVisibility(open) {
-            Text(
-                boldMarkup(body),
-                color = c.ink,
-                style = TextStyle(fontFamily = Serif, fontSize = (16 * prefs.fontScale).sp, lineHeight = (prefs.lineHeight - .1f).em),
-                modifier = Modifier.padding(start = 14.dp, end = 14.dp, bottom = 14.dp),
-            )
-        }
-    }
+        colors = ButtonDefaults.buttonColors(containerColor = c.accent, contentColor = c.onAccent, disabledContainerColor = c.soft, disabledContentColor = c.muted),
+    ) { Text(text, fontFamily = Sans, fontSize = if (enabled) 15.sp else 13.sp, fontWeight = FontWeight.Medium, maxLines = 1) }
 }
 
 /** Commentary text keeps only <b>…</b> (the dibur hamatchil) and newlines between comments. */

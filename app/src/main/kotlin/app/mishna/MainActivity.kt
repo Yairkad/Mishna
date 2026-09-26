@@ -99,6 +99,8 @@ private fun App(vm: AppViewModel) {
                         prefs = ReadingPrefs(state.prefs.fontScale, state.prefs.lineSpacing.factor, state.prefs.showIkarTosafotYomTov),
                         keepScreenOn = state.prefs.keepScreenOn,
                         initialPage = if (state.readingDate == today) state.readingPage else 0,
+                        splitRatio = state.prefs.splitRatio,
+                        onSplitRatio = { r -> vm.updatePrefs { it.copy(splitRatio = r) } },
                         onPageChange = vm::setReadingPage,
                         onFinish = { vm.completeToday(); showHome = true },
                         onShiftDay = vm::shiftDay,
