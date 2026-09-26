@@ -7,3 +7,4 @@ local.properties
 tools/.cache/
 captures/
 *.keystore
+!app/debug.keystore

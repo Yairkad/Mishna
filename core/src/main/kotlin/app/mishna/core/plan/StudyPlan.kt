@@ -130,6 +130,20 @@ data class StudyPlan(
         }
     }
 
+    /**
+     * Continue from [index] (Settings → start point). History and streaks are kept;
+     * today's assignment moves unless it is already done.
+     */
+    fun moveTo(index: Int, today: LocalDate): StudyPlan {
+        val start = index.coerceIn(0, total)
+        val d = days[today]
+        return if (d != null && !d.done) {
+            copy(nextIndex = start, days = days + (today to assignment(today, start)))
+        } else {
+            copy(nextIndex = start)
+        }
+    }
+
     /** Starts the Mishna again from Berakhot 1:1 after a finished cycle. History is kept. */
     fun startNewCycle(today: LocalDate): StudyPlan {
         check(finished)
