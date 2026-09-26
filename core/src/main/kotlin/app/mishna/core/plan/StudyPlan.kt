@@ -1,9 +1,13 @@
 package app.mishna.core.plan
 
 import app.mishna.core.content.Mishnayot
+import app.mishna.core.state.LocalDateSerializer
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
+@Serializable
 enum class CompletionMode {
     /** Finished in the app after scrolling to the end. */
     APP,
@@ -16,8 +20,9 @@ enum class CompletionMode {
 }
 
 /** The mishnayot assigned to one study day. [count] is 0 only after the whole Mishna is finished. */
+@Serializable
 data class StudyDay(
-    val date: LocalDate,
+    @Serializable(with = LocalDateSerializer::class) val date: LocalDate,
     val start: Int,
     val count: Int,
     val completed: CompletionMode? = null,
@@ -31,13 +36,15 @@ data class StudyDay(
  * Rules (SPEC §2, §6): the study never skips. A missed day keeps its assignment and the
  * next day starts from the same mishna. [nextIndex] is the first mishna not yet studied.
  */
+@Serializable
 data class StudyPlan(
-    val startDate: LocalDate,
+    @Serializable(with = LocalDateSerializer::class) val startDate: LocalDate,
     val pace: Int,
     val nextIndex: Int,
-    val days: Map<LocalDate, StudyDay> = emptyMap(),
+    val days: Map<@Serializable(with = LocalDateSerializer::class) LocalDate, StudyDay> = emptyMap(),
     val cycle: Int = 1,
-    val total: Int = Mishnayot.total,
+    /** Not stored: always the size of the bundled content. */
+    @Transient val total: Int = Mishnayot.total,
 ) {
     init {
         require(pace >= 1) { "pace must be ≥ 1" }
@@ -106,6 +113,20 @@ data class StudyPlan(
             copy(nextIndex = start, days = days + (today to assignment(today, start)))
         } else {
             copy(nextIndex = (nextIndex + delta).coerceIn(0, total))
+        }
+    }
+
+    /**
+     * What each of [dates] (after [today], in order) will cover if every day up to it is
+     * studied. Used to show Shabbat and Yom Tov study in advance on Erev Shabbat.
+     */
+    fun preview(today: LocalDate, dates: List<LocalDate>): List<StudyDay> {
+        val t = days[today]
+        var from = if (t == null || t.done) nextIndex else t.start + t.count
+        return dates.sorted().map { d ->
+            val s = StudyDay(d, from, minOf(pace, total - from))
+            from += s.count
+            s
         }
     }
 

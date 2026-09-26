@@ -25,6 +25,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.activity.viewModels
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.mishna.core.state.ThemeMode
+import app.mishna.core.time.JewishDays
+import app.mishna.ui.home.HomeScreen
+import app.mishna.ui.onboarding.OnboardingScreen
+import app.mishna.ui.study.ReadingPrefs
 import app.mishna.ui.study.StudyScreen
 import app.mishna.ui.theme.LocalBook
 import app.mishna.ui.theme.MishnaTheme
@@ -32,9 +40,24 @@ import app.mishna.ui.theme.Sans
 import app.mishna.ui.theme.Serif
 
 class MainActivity : ComponentActivity() {
+    private val vm: AppViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { MishnaTheme { App() } }
+        setContent {
+            val state by vm.state.collectAsStateWithLifecycle()
+            val dark = when (state.prefs.theme) {
+                ThemeMode.SYSTEM -> isSystemInDarkTheme()
+                ThemeMode.LIGHT -> false
+                ThemeMode.DARK -> true
+            }
+            MishnaTheme(dark) { App(vm) }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        vm.refresh()
     }
 }
 
@@ -45,29 +68,62 @@ private enum class Tab(val label: String, val icon: Int) {
 }
 
 @Composable
-private fun App() {
+private fun App(vm: AppViewModel) {
     val c = LocalBook.current
-    var tab by rememberSaveable { mutableStateOf(Tab.STUDY) }
-    Column(Modifier.fillMaxSize().background(c.bg).systemBarsPadding()) {
-        Box(Modifier.weight(1f).fillMaxWidth()) {
-            when (tab) {
-                Tab.STUDY -> StudyScreen()
-                Tab.HISTORY -> ComingSoon("היסטוריה")
-                Tab.SETTINGS -> ComingSoon("הגדרות")
-            }
+    val state by vm.state.collectAsStateWithLifecycle()
+    val today by vm.studyDate.collectAsStateWithLifecycle()
+    val plan = state.plan
+    Box(Modifier.fillMaxSize().background(c.bg).systemBarsPadding()) {
+        if (plan == null) {
+            OnboardingScreen(today) { name, place, p -> vm.finishOnboarding(name, place, p) }
+            return@Box
         }
-        NavigationBar(containerColor = c.surface, tonalElevation = 0.dp, modifier = Modifier.height(72.dp)) {
-            Tab.entries.forEach { t ->
-                NavigationBarItem(
-                    selected = tab == t,
-                    onClick = { tab = t },
-                    icon = { Icon(painterResource(t.icon), contentDescription = null) },
-                    label = { Text(t.label, fontFamily = Sans, fontSize = 12.sp) },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = c.accent, selectedTextColor = c.accent,
-                        unselectedIconColor = c.muted, unselectedTextColor = c.muted, indicatorColor = c.soft,
-                    ),
-                )
+        var tab by rememberSaveable { mutableStateOf(Tab.STUDY) }
+        // Opening the app shows the opening card; the study tab goes straight to the text.
+        var showHome by rememberSaveable { mutableStateOf(true) }
+        Column(Modifier.fillMaxSize()) {
+            Box(Modifier.weight(1f).fillMaxWidth()) {
+                val day = plan.day(today)
+                when {
+                    tab == Tab.STUDY && (showHome || day == null || day.count == 0) -> HomeScreen(
+                        name = state.name, plan = plan, today = today,
+                        onStart = { showHome = false },
+                        onMarkHoly = vm::markHolyDays,
+                        onNewCycle = vm::startNewCycle,
+                    )
+                    tab == Tab.STUDY && day != null -> StudyScreen(
+                        start = day.start, count = day.count,
+                        dayNumber = plan.dayNumber(today),
+                        hebrewDate = JewishDays.hebrewDate(today),
+                        done = day.done,
+                        prefs = ReadingPrefs(state.prefs.fontScale, state.prefs.lineSpacing.factor, state.prefs.showIkarTosafotYomTov),
+                        keepScreenOn = state.prefs.keepScreenOn,
+                        initialPage = if (state.readingDate == today) state.readingPage else 0,
+                        onPageChange = vm::setReadingPage,
+                        onFinish = { vm.completeToday(); showHome = true },
+                        onShiftDay = vm::shiftDay,
+                    )
+                    tab == Tab.HISTORY -> ComingSoon("היסטוריה")
+                    else -> ComingSoon("הגדרות")
+                }
+            }
+            NavigationBar(containerColor = c.surface, tonalElevation = 0.dp, modifier = Modifier.height(72.dp)) {
+                Tab.entries.forEach { t ->
+                    NavigationBarItem(
+                        selected = tab == t,
+                        onClick = {
+                            if (t == Tab.STUDY && tab == Tab.STUDY) showHome = !showHome
+                            if (t == Tab.STUDY && tab != Tab.STUDY) showHome = false
+                            tab = t
+                        },
+                        icon = { Icon(painterResource(t.icon), contentDescription = null) },
+                        label = { Text(t.label, fontFamily = Sans, fontSize = 12.sp) },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = c.accent, selectedTextColor = c.accent,
+                            unselectedIconColor = c.muted, unselectedTextColor = c.muted, indicatorColor = c.soft,
+                        ),
+                    )
+                }
             }
         }
     }

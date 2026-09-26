@@ -29,8 +29,15 @@ class StudyViewModel(app: Application) : AndroidViewModel(app) {
     private val _ui = MutableStateFlow(StudyUi())
     val ui: StateFlow<StudyUi> = _ui
 
-    // Until the plan is stored (next stage), show the first day of the default plan.
-    fun load(start: Int = 0, count: Int = 3) = viewModelScope.launch {
+    private var loaded: Pair<Int, Int>? = null
+
+    fun load(start: Int, count: Int) {
+        if (loaded == start to count) return
+        loaded = start to count
+        viewModelScope.launch { fill(start, count) }
+    }
+
+    private suspend fun fill(start: Int, count: Int) {
         val rows = dao.mishnayot(start, count)
         val comms = dao.commentaries(start, count).groupBy { it.globalIndex }
         val first = Mishnayot.ref(start)

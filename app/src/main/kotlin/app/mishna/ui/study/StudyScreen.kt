@@ -20,7 +20,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -48,88 +47,140 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.key
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.style.TextAlign
+import app.mishna.core.content.Mishnayot
+import app.mishna.ui.common.GhostButton
+import app.mishna.ui.common.PrimaryButton
 import app.mishna.ui.theme.LocalBook
 import app.mishna.ui.theme.Sans
 import app.mishna.ui.theme.Serif
 import kotlinx.coroutines.launch
 
-/** Reading settings (DESIGN.md §1). Stored with the other settings in a later stage. */
 data class ReadingPrefs(val fontScale: Float = 1f, val lineHeight: Float = 1.85f, val showIkarTosafotYomTov: Boolean = true)
 
+/** The study screen (DESIGN.md §3.3). */
 @Composable
-fun StudyScreen(prefs: ReadingPrefs = ReadingPrefs(), vm: StudyViewModel = viewModel()) {
-    LaunchedEffect(Unit) { vm.load() }
+fun StudyScreen(
+    start: Int,
+    count: Int,
+    dayNumber: Int,
+    hebrewDate: String,
+    done: Boolean,
+    prefs: ReadingPrefs,
+    keepScreenOn: Boolean,
+    initialPage: Int,
+    onPageChange: (Int) -> Unit,
+    onFinish: () -> Unit,
+    onShiftDay: (forward: Boolean) -> Unit,
+    vm: StudyViewModel = viewModel(),
+) {
+    LaunchedEffect(start, count) { vm.load(start, count) }
     val ui by vm.ui.collectAsStateWithLifecycle()
     val c = LocalBook.current
-    if (ui.pages.isEmpty()) {
+    val view = LocalView.current
+    DisposableEffect(keepScreenOn) {
+        view.keepScreenOn = keepScreenOn
+        onDispose { view.keepScreenOn = false }
+    }
+    if (ui.pages.isEmpty() || ui.heading != Mishnayot.describe(start, count)) {
         Box(Modifier.fillMaxSize().background(c.bg))
         return
     }
-    val pager = rememberPagerState { ui.pages.size }
-    val scope = rememberCoroutineScope()
-    var bottomReached by rememberSaveable { mutableStateOf(false) }
-    var done by rememberSaveable { mutableStateOf(false) }
-    var summary by remember { mutableStateOf(false) }
-    val last = pager.currentPage == ui.pages.lastIndex
+    key(start, count) {
+        val pager = rememberPagerState(initialPage = initialPage.coerceIn(0, ui.pages.lastIndex)) { ui.pages.size }
+        val scope = rememberCoroutineScope()
+        var bottomReached by rememberSaveable { mutableStateOf(false) }
+        var summary by remember { mutableStateOf(false) }
+        var shiftSheet by remember { mutableStateOf(false) }
+        var confirmShift by remember { mutableStateOf<Boolean?>(null) }
+        val last = pager.currentPage == ui.pages.lastIndex
+        LaunchedEffect(pager.currentPage) { onPageChange(pager.currentPage) }
 
-    Column(Modifier.fillMaxSize().background(c.bg)) {
-        // Header
-        Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 10.dp)) {
-            Text(ui.seder, color = c.muted, fontSize = 12.sp, fontFamily = Sans)
-            Text(ui.pages[pager.currentPage].title, color = c.ink, fontSize = 19.sp, fontFamily = Serif, fontWeight = FontWeight.Bold)
-            Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)) {
-                ui.pages.indices.forEach { i ->
-                    val color = when {
-                        i == pager.currentPage -> c.accent
-                        i < pager.currentPage -> c.muted
-                        else -> c.line
+        Column(Modifier.fillMaxSize().background(c.bg)) {
+            Column(Modifier.fillMaxWidth().padding(start = 18.dp, end = 8.dp, top = 10.dp, bottom = 10.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("${ui.seder} · יום $dayNumber · $hebrewDate", color = c.muted, fontSize = 12.sp, fontFamily = Sans)
+                        Text(ui.pages[pager.currentPage].title, color = c.ink, fontSize = 19.sp, fontFamily = Serif, fontWeight = FontWeight.Bold)
                     }
-                    Box(Modifier.width(24.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(color))
+                    TextButton(onClick = { shiftSheet = true }) { Text("⋯", color = c.muted, fontSize = 22.sp) }
+                }
+                Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)) {
+                    ui.pages.indices.forEach { i ->
+                        val color = when {
+                            i == pager.currentPage -> c.accent
+                            i < pager.currentPage -> c.muted
+                            else -> c.line
+                        }
+                        Box(Modifier.width(24.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(color))
+                    }
                 }
             }
-        }
-        Box(Modifier.fillMaxWidth().height(1.dp).background(c.line))
+            Box(Modifier.fillMaxWidth().height(1.dp).background(c.line))
 
-        HorizontalPager(state = pager, modifier = Modifier.weight(1f)) { page ->
-            val scroll = rememberScrollState()
-            val atBottom by remember { derivedStateOf { scroll.value >= scroll.maxValue - 8 } }
-            LaunchedEffect(atBottom) { if (page == ui.pages.lastIndex && atBottom) bottomReached = true }
-            MishnaPageView(ui.pages[page], prefs, Modifier.verticalScroll(scroll))
-        }
-
-        Box(Modifier.fillMaxWidth().height(1.dp).background(c.line))
-        if (last && !bottomReached && !done) {
-            Text("גלול עד סוף המשנה כדי לסיים", color = c.muted, fontSize = 11.sp, fontFamily = Sans,
-                modifier = Modifier.fillMaxWidth().padding(top = 6.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-        }
-        Column(Modifier.padding(horizontal = 16.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                PagerButton("→  המשנה הקודמת", enabled = pager.currentPage > 0, modifier = Modifier.weight(1f)) {
-                    scope.launch { pager.animateScrollToPage(pager.currentPage - 1) }
-                }
-                Text("${pager.currentPage + 1} / ${ui.pages.size}", color = c.muted, fontFamily = Serif, fontSize = 15.sp)
-                PagerButton("המשנה הבאה  ←", enabled = !last, modifier = Modifier.weight(1f)) {
-                    scope.launch { pager.animateScrollToPage(pager.currentPage + 1) }
-                }
+            HorizontalPager(state = pager, modifier = Modifier.weight(1f)) { page ->
+                val scroll = rememberScrollState()
+                val atBottom by remember { derivedStateOf { scroll.value >= scroll.maxValue - 8 } }
+                LaunchedEffect(atBottom) { if (page == ui.pages.lastIndex && atBottom) bottomReached = true }
+                MishnaPageView(ui.pages[page], prefs, Modifier.verticalScroll(scroll))
             }
-            Button(
-                onClick = { summary = true },
-                enabled = last && bottomReached && !done,
-                modifier = Modifier.fillMaxWidth().height(52.dp),
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = c.accent, contentColor = c.onAccent, disabledContainerColor = c.soft, disabledContentColor = c.muted),
-            ) { Text(if (done) "הלימוד הושלם ✓" else "סיימתי את הלימוד היום", fontFamily = Sans, fontSize = 16.sp, fontWeight = FontWeight.Medium) }
-        }
-    }
 
-    if (summary) {
-        AlertDialog(
-            onDismissRequest = { summary = false },
-            containerColor = c.bg,
-            title = { Text("סיימת את הלימוד להיום", fontFamily = Serif, fontWeight = FontWeight.Bold, color = c.ink) },
-            text = { Text("${ui.heading}\n${ui.pages.size} משניות", fontFamily = Serif, color = c.muted, fontSize = 16.sp) },
-            confirmButton = { TextButton(onClick = { done = true; summary = false }) { Text("אישור", color = c.accent, fontFamily = Sans) } },
-        )
+            Box(Modifier.fillMaxWidth().height(1.dp).background(c.line))
+            if (last && !bottomReached && !done) {
+                Text("גלול עד סוף המשנה כדי לסיים", color = c.muted, fontSize = 11.sp, fontFamily = Sans,
+                    modifier = Modifier.fillMaxWidth().padding(top = 6.dp), textAlign = TextAlign.Center)
+            }
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    PagerButton("→  המשנה הקודמת", enabled = pager.currentPage > 0, modifier = Modifier.weight(1f)) {
+                        scope.launch { pager.animateScrollToPage(pager.currentPage - 1) }
+                    }
+                    Text("${pager.currentPage + 1} / ${ui.pages.size}", color = c.muted, fontFamily = Serif, fontSize = 15.sp)
+                    PagerButton("המשנה הבאה  ←", enabled = !last, modifier = Modifier.weight(1f)) {
+                        scope.launch { pager.animateScrollToPage(pager.currentPage + 1) }
+                    }
+                }
+                PrimaryButton(if (done) "הלימוד הושלם ✓" else "סיימתי את הלימוד היום", enabled = last && bottomReached && !done) { summary = true }
+            }
+        }
+
+        if (summary) {
+            AlertDialog(
+                onDismissRequest = { summary = false },
+                containerColor = c.bg,
+                title = { Text("סיימת את הלימוד להיום", fontFamily = Serif, fontWeight = FontWeight.Bold, color = c.ink) },
+                text = { Text("${ui.heading}\n${ui.pages.size} משניות", fontFamily = Serif, color = c.muted, fontSize = 16.sp) },
+                confirmButton = { TextButton(onClick = { summary = false; onFinish() }) { Text("אישור", color = c.accent, fontFamily = Sans) } },
+            )
+        }
+        if (shiftSheet) {
+            AlertDialog(
+                onDismissRequest = { shiftSheet = false },
+                containerColor = c.bg,
+                title = { Text("תיקון מיקום בלימוד", fontFamily = Serif, fontWeight = FontWeight.Bold, color = c.ink) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("לשימוש כשלמדת יותר או פחות מחוץ לאפליקציה. ההיסטוריה לא משתנה.", fontFamily = Sans, color = c.muted, fontSize = 14.sp)
+                        GhostButton("למדתי יותר · יום קדימה", Modifier.fillMaxWidth()) { shiftSheet = false; confirmShift = true }
+                        GhostButton("למדתי פחות · יום אחורה", Modifier.fillMaxWidth()) { shiftSheet = false; confirmShift = false }
+                    }
+                },
+                confirmButton = { TextButton(onClick = { shiftSheet = false }) { Text("סגירה", color = c.muted, fontFamily = Sans) } },
+            )
+        }
+        confirmShift?.let { forward ->
+            AlertDialog(
+                onDismissRequest = { confirmShift = null },
+                containerColor = c.bg,
+                title = { Text(if (forward) "להזיז יום קדימה?" else "להזיז יום אחורה?", fontFamily = Serif, fontWeight = FontWeight.Bold, color = c.ink) },
+                text = { Text(if (done) "השינוי יחול מהלימוד של מחר." else "הלימוד של היום ישתנה בהתאם.", fontFamily = Sans, color = c.muted) },
+                confirmButton = { TextButton(onClick = { confirmShift = null; onShiftDay(forward) }) { Text("אישור", color = c.accent, fontFamily = Sans) } },
+                dismissButton = { TextButton(onClick = { confirmShift = null }) { Text("ביטול", color = c.muted, fontFamily = Sans) } },
+            )
+        }
     }
 }
 

@@ -2,6 +2,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     kotlin("jvm")
+    kotlin("plugin.serialization")
 }
 
 java {
@@ -15,6 +16,7 @@ kotlin {
 
 dependencies {
     api("com.kosherjava:zmanim:2.5.0")
+    api("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
     testImplementation(kotlin("test"))
 }
 

@@ -2,10 +2,12 @@ package app.mishna.core.time
 
 import com.kosherjava.zmanim.ComplexZmanimCalendar
 import com.kosherjava.zmanim.util.GeoLocation
+import kotlinx.serialization.Serializable
 import java.time.LocalDate
 import java.time.ZonedDateTime
 import java.util.TimeZone
 
+@Serializable
 data class Place(val name: String, val latitude: Double, val longitude: Double, val elevation: Double = 0.0) {
     companion object {
         private const val TZ = "Asia/Jerusalem"
