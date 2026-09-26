@@ -1,7 +1,9 @@
 package app.mishna
 
 import android.app.Application
+import android.content.Intent
 import android.net.Uri
+import app.mishna.backup.BackupWorker
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import app.mishna.core.plan.CompletionMode
@@ -101,6 +103,24 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** One-off messages shown as a snackbar. */
     val message: StateFlow<String?> = _message
     fun messageShown() { _message.value = null }
+
+    /** Keeps access to the chosen backup folder across restarts and runs a first backup there. */
+    fun setBackupFolder(uri: Uri) = viewModelScope.launch {
+        val app = getApplication<Application>()
+        runCatching {
+            app.contentResolver.takePersistableUriPermission(
+                uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+            )
+        }
+        store.update { it.copy(prefs = it.prefs.copy(backupFolder = uri.toString())) }
+        BackupWorker.runNow(app)
+        _message.value = "התיקייה נשמרה. מגבה עכשיו."
+    }
+
+    fun backupNow() {
+        BackupWorker.runNow(getApplication())
+        _message.value = "מגבה…"
+    }
 
     fun updatePrefs(change: (Prefs) -> Prefs) = viewModelScope.launch {
         store.update { it.copy(prefs = change(it.prefs)) }

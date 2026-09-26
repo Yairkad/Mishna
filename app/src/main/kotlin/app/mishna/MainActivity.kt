@@ -129,6 +129,8 @@ private fun App(vm: AppViewModel) {
                         onExport = vm::exportBackup,
                         onImport = vm::importBackup,
                         onReset = vm::reset,
+                        onBackupFolder = vm::setBackupFolder,
+                        onBackupNow = vm::backupNow,
                     )
                 }
             }

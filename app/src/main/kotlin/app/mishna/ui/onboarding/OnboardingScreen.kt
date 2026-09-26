@@ -5,6 +5,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.LocationManager
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -124,8 +125,9 @@ fun OnboardingScreen(today: LocalDate, onDone: (name: String, place: Place, plan
                     )
                 }
                 5 -> {
-                    Title("מיקום", "המיקום משמש לחישוב הזריחה, שבה מתחלף יום הלימוד.")
+                    Title("מיקום והתראות", "המיקום משמש לחישוב הזריחה, שבה מתחלף יום הלימוד.")
                     LocationStep(place) { place = it }
+                    if (Build.VERSION.SDK_INT >= 33) NotificationStep()
                 }
             }
         }
@@ -257,6 +259,22 @@ private fun LocationStep(place: Place, onPlace: (Place) -> Unit) {
     Spacer(Modifier.height(16.dp))
     val options = if (place in Place.CITIES) Place.CITIES else listOf(place) + Place.CITIES
     Picker("עיר (משמשת גם כשאין מיקום)", options, place, { it.name }, onPlace)
+}
+
+@Composable
+private fun NotificationStep() {
+    val c = LocalBook.current
+    val context = LocalContext.current
+    var granted by remember {
+        mutableStateOf(context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED)
+    }
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted = it }
+    Spacer(Modifier.height(20.dp))
+    Text("תזכורת בבוקר, ותזכורת נוספת בערב אם הלימוד לא הושלם.", fontFamily = Sans, fontSize = 14.sp, color = c.muted,
+        modifier = Modifier.padding(bottom = 10.dp))
+    GhostButton(if (granted) "✓ התראות מאופשרות" else "אפשר התראות", Modifier.fillMaxWidth(), enabled = !granted) {
+        launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+    }
 }
 
 @SuppressLint("MissingPermission")

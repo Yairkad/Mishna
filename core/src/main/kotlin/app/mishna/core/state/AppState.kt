@@ -9,12 +9,20 @@ import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.Json
+import app.mishna.core.time.ReminderTimes
 import java.time.LocalDate
+import java.time.LocalTime
 
 object LocalDateSerializer : KSerializer<LocalDate> {
     override val descriptor = PrimitiveSerialDescriptor("LocalDate", PrimitiveKind.STRING)
     override fun serialize(encoder: Encoder, value: LocalDate) = encoder.encodeString(value.toString())
     override fun deserialize(decoder: Decoder): LocalDate = LocalDate.parse(decoder.decodeString())
+}
+
+object LocalTimeSerializer : KSerializer<LocalTime> {
+    override val descriptor = PrimitiveSerialDescriptor("LocalTime", PrimitiveKind.STRING)
+    override fun serialize(encoder: Encoder, value: LocalTime) = encoder.encodeString(value.toString())
+    override fun deserialize(decoder: Decoder): LocalTime = LocalTime.parse(decoder.decodeString())
 }
 
 @Serializable
@@ -33,7 +41,11 @@ data class Prefs(
     val keepScreenOn: Boolean = true,
     val theme: ThemeMode = ThemeMode.SYSTEM,
     val notifications: Boolean = true,
+    val reminderTimes: ReminderTimes = ReminderTimes(),
     val weeklyBackup: Boolean = true,
+    /** Folder the user picked for the weekly backup (a content:// tree URI), or null. */
+    val backupFolder: String? = null,
+    @Serializable(with = LocalDateSerializer::class) val lastBackup: LocalDate? = null,
 )
 
 /** Everything the app stores. Also the backup file format (SPEC §9). */

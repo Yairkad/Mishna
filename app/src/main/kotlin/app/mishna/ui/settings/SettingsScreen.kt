@@ -47,6 +47,18 @@ import app.mishna.ui.theme.LocalBook
 import app.mishna.ui.theme.Sans
 import app.mishna.ui.theme.Serif
 import java.time.LocalDate
+import java.time.LocalTime
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberTimePickerState
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
+import app.mishna.core.time.JewishDays
+import app.mishna.core.time.ReminderTimes
 
 private val DANGER = Color(0xFFB3261E)
 
@@ -70,6 +82,8 @@ fun SettingsScreen(
     onExport: (android.net.Uri) -> Unit,
     onImport: (android.net.Uri) -> Unit,
     onReset: () -> Unit,
+    onBackupFolder: (android.net.Uri) -> Unit,
+    onBackupNow: () -> Unit,
 ) {
     val c = LocalBook.current
     val p = state.prefs
@@ -84,6 +98,11 @@ fun SettingsScreen(
     val importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let(onImport)
     }
+    val folderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        uri?.let(onBackupFolder)
+    }
+    val context = LocalContext.current
+    val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
 
     Column(Modifier.fillMaxSize().background(c.bg).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 8.dp)) {
         Section("תצוגה")
@@ -108,7 +127,39 @@ fun SettingsScreen(
         }
 
         Section("התראות")
-        Item("תזכורות יומיות") { Text("בגרסה הבאה", fontFamily = Sans, fontSize = 13.sp, color = c.muted) }
+        Item("תזכורות") {
+            Toggle(p.notifications) { v ->
+                if (v && Build.VERSION.SDK_INT >= 33 &&
+                    context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+                ) notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                onPrefs { it.copy(notifications = v) }
+            }
+        }
+        if (p.notifications) {
+            val t = p.reminderTimes
+            TimeItem("ראשון–חמישי · תזכורת ראשונה", t.weekdayFirst) { v -> onPrefs { it.copy(reminderTimes = it.reminderTimes.copy(weekdayFirst = v)) } }
+            TimeItem("ראשון–חמישי · אם לא הושלם", t.weekdaySecond) { v -> onPrefs { it.copy(reminderTimes = it.reminderTimes.copy(weekdaySecond = v)) } }
+            TimeItem("שישי וערב חג · תזכורת ראשונה", t.erevFirst) { v -> onPrefs { it.copy(reminderTimes = it.reminderTimes.copy(erevFirst = v)) } }
+            TimeItem("שישי וערב חג · אם לא הושלם", t.erevSecond) { v -> onPrefs { it.copy(reminderTimes = it.reminderTimes.copy(erevSecond = v)) } }
+            TimeItem("מוצאי שבת וחג · אם לא סומן", t.afterHoly) { v -> onPrefs { it.copy(reminderTimes = it.reminderTimes.copy(afterHoly = v)) } }
+            if (t != ReminderTimes()) {
+                Item("איפוס לשעות ברירת המחדל", accent = true, onClick = { onPrefs { it.copy(reminderTimes = ReminderTimes()) } }) {}
+            }
+        }
+
+        Section("גיבוי")
+        Item("גיבוי שבועי אוטומטי") { Toggle(p.weeklyBackup) { v -> onPrefs { it.copy(weeklyBackup = v) } } }
+        Item("תיקיית גיבוי", onClick = { folderPicker.launch(null) }) {
+            Text(if (p.backupFolder == null) "בחר תיקייה" else "נבחרה ✓", fontFamily = Sans, fontSize = 13.sp, color = c.muted)
+        }
+        if (p.backupFolder != null) {
+            Item("גבה עכשיו", accent = true, onClick = onBackupNow) {
+                Text(p.lastBackup?.let { "אחרון: ${JewishDays.hebrewDate(it)}" } ?: "טרם בוצע", fontFamily = Sans, fontSize = 12.sp, color = c.muted)
+            }
+        } else {
+            Text("בלי תיקייה, הנתונים נשמרים רק בגיבוי של Android (אם הוא מופעל במכשיר).",
+                fontFamily = Sans, fontSize = 12.sp, color = c.muted, modifier = Modifier.padding(vertical = 6.dp))
+        }
 
         Section("כללי")
         val places = if (state.place in Place.CITIES) Place.CITIES else listOf(state.place) + Place.CITIES
@@ -123,7 +174,7 @@ fun SettingsScreen(
             val next = plan.day(today)?.takeIf { !it.done }?.start ?: plan.nextIndex
             if (next < plan.total) Text(Mishnayot.describe(next, 1), fontFamily = Serif, fontSize = 14.sp, color = c.muted)
         }
-        Item("גיבוי לקובץ", accent = true, onClick = { exporter.launch("mishna-backup-$today.json") }) {
+        Item("גיבוי ידני לקובץ", accent = true, onClick = { exporter.launch("mishna-backup-$today.json") }) {
             Text("JSON", fontFamily = Sans, fontSize = 13.sp, color = c.muted)
         }
         Item("שחזור מגיבוי", accent = true, onClick = { advanced = Advanced.RESTORE }) {}
@@ -202,6 +253,34 @@ fun SettingsScreen(
                 )
             },
             confirmButton = { TextButton(onClick = { about = false }) { Text("סגירה", color = c.accent, fontFamily = Sans) } },
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TimeItem(label: String, time: LocalTime, onChange: (LocalTime) -> Unit) {
+    val c = LocalBook.current
+    var open by remember { mutableStateOf(false) }
+    Item(label, onClick = { open = true }) {
+        Text("%02d:%02d".format(time.hour, time.minute), fontFamily = Sans, fontSize = 15.sp, color = c.accent)
+    }
+    if (open) {
+        val state = rememberTimePickerState(time.hour, time.minute, is24Hour = true)
+        AlertDialog(
+            onDismissRequest = { open = false },
+            containerColor = c.bg,
+            title = { Text(label, fontFamily = Sans, fontSize = 15.sp, color = c.ink) },
+            text = {
+                // The clock face reads left-to-right.
+                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) { TimePicker(state) }
+            },
+            confirmButton = {
+                TextButton(onClick = { onChange(LocalTime.of(state.hour, state.minute)); open = false }) {
+                    Text("אישור", color = c.accent, fontFamily = Sans)
+                }
+            },
+            dismissButton = { TextButton(onClick = { open = false }) { Text("ביטול", color = c.muted, fontFamily = Sans) } },
         )
     }
 }
