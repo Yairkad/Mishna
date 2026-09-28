@@ -72,7 +72,7 @@ fun HistoryScreen(plan: StudyPlan, today: LocalDate, review: ReviewState? = null
         if (review != null) {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 StatTile("${review.done.size}", "חזרות שבוצעו", Modifier.weight(1f))
-                StatTile("${plan.dueReviews(review, today).sumOf { it.count }}", "משניות לחזרה היום", Modifier.weight(1f))
+                if (review.enabled) StatTile("${plan.dueReviews(review, today).sumOf { it.count }}", "משניות לחזרה היום", Modifier.weight(1f))
             }
         }
 
@@ -102,7 +102,7 @@ fun HistoryScreen(plan: StudyPlan, today: LocalDate, review: ReviewState? = null
                 Legend(c.done, "בוצע")
                 Legend(c.holy, "שבת/חג (מהספר)")
                 Legend(null, "לא הושלם")
-                if (review != null) Legend(c.accent, "• חזרה")
+                if (review != null && review.done.isNotEmpty()) Legend(c.accent, "• חזרה")
             }
         }
 

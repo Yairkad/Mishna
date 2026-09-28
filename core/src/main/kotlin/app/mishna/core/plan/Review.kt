@@ -36,6 +36,8 @@ data class DoneReview(val key: ReviewKey, @Serializable(with = LocalDateSerializ
 data class ReviewState(
     @Serializable(with = LocalDateSerializer::class) val enabledFrom: LocalDate,
     val done: List<DoneReview> = emptyList(),
+    /** Switched off in Settings; the history in [done] is kept. */
+    val enabled: Boolean = true,
 ) {
     private val doneKeys: Set<ReviewKey> by lazy { done.mapTo(HashSet()) { it.key } }
 
@@ -43,6 +45,16 @@ data class ReviewState(
 
     fun markReviewed(keys: Collection<ReviewKey>, on: LocalDate): ReviewState =
         copy(done = done + keys.filterNot(::isDone).distinct().map { DoneReview(it, on) })
+
+    /**
+     * Switching back on starts from [today] again, so the days it was off do not come back as a
+     * backlog; reviews already done stay done.
+     */
+    fun setEnabled(on: Boolean, today: LocalDate): ReviewState = when {
+        on == enabled -> this
+        on -> copy(enabled = true, enabledFrom = today)
+        else -> copy(enabled = false)
+    }
 
     /** Reviews finished on [date]. */
     fun doneOn(date: LocalDate): List<ReviewKey> = done.filter { it.on == date }.map { it.key }
@@ -61,7 +73,7 @@ data class ReviewGroup(val label: String, val items: List<ReviewItem>) {
  * Reviews due before the plan was switched on are skipped, so turning it on does not create a backlog.
  */
 fun StudyPlan.dueReviews(state: ReviewState, date: LocalDate): List<ReviewItem> =
-    days.values.asSequence()
+    if (!state.enabled) emptyList() else days.values.asSequence()
         .filter { it.done && it.count > 0 }
         .flatMap { day -> keysUpTo(day.date, date).map { ReviewItem(it, day.start, day.count) } }
         .filter { !it.key.due.isBefore(state.enabledFrom) && !state.isDone(it.key) }

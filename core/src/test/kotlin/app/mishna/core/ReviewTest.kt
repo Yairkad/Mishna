@@ -80,4 +80,17 @@ class ReviewTest {
         val app = AppState(plan = p, review = state)
         assertEquals(app, AppState.decode(app.encode()))
     }
+
+    @Test fun offKeepsHistory() {
+        val today = d0.plusDays(1)
+        val p = plan(1)
+        var state = ReviewState(d0).markReviewed(p.dueReviews(ReviewState(d0), today).map { it.key }, today)
+        state = state.setEnabled(false, today)
+        assertTrue(p.dueReviews(state, today).isEmpty())
+        assertEquals(1, state.doneOn(today).size)
+        val later = d0.plusDays(20)
+        state = state.setEnabled(true, later)
+        assertEquals(later, state.enabledFrom)
+        assertEquals(1, state.done.size)
+    }
 }

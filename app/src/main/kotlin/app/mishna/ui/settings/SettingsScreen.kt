@@ -128,7 +128,7 @@ fun SettingsScreen(
         }
 
         Section("חזרה")
-        Item("תוכנית חזרה") { Toggle(state.review != null, onReviewEnabled) }
+        Item("תוכנית חזרה") { Toggle(state.review?.enabled == true, onReviewEnabled) }
         Text("חוזרים על כל יום לימוד למחרת, אחרי שבוע, אחרי 30 יום, אחרי 90 יום ואז כל שנה. חזרה שלא בוצעה נשארת עד שמבצעים אותה.",
             fontFamily = Sans, fontSize = 12.sp, color = c.muted, modifier = Modifier.padding(vertical = 6.dp))
 

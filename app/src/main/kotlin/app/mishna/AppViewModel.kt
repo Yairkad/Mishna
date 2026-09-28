@@ -62,7 +62,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun setReviewEnabled(on: Boolean) = viewModelScope.launch {
-        store.update { it.copy(review = if (on) it.review ?: ReviewState(studyDate.value) else null) }
+        store.update {
+            val today = studyDate.value
+            it.copy(review = it.review?.setEnabled(on, today) ?: if (on) ReviewState(today) else null)
+        }
     }
 
     fun markReviewed(keys: List<ReviewKey>) = viewModelScope.launch {

@@ -100,7 +100,8 @@ private fun App(vm: AppViewModel) {
         var showHome by rememberSaveable { mutableStateOf(true) }
         var showReview by rememberSaveable { mutableStateOf(false) }
         val reviewState = state.review
-        val dueReviews = remember(plan, reviewState, today) { reviewState?.let { plan.dueReviews(it, today) } }
+        // null = review plan off, so the opening card shows no review section.
+        val dueReviews = remember(plan, reviewState, today) { reviewState?.takeIf { it.enabled }?.let { plan.dueReviews(it, today) } }
         Column(Modifier.fillMaxSize()) {
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 val day = plan.day(today)
