@@ -1,5 +1,6 @@
 package app.mishna.core.state
 
+import app.mishna.core.plan.ReviewState
 import app.mishna.core.plan.StudyPlan
 import app.mishna.core.time.Place
 import kotlinx.serialization.KSerializer
@@ -55,6 +56,8 @@ data class AppState(
     val name: String = "",
     val place: Place = Place.JERUSALEM,
     val plan: StudyPlan? = null,
+    /** Spaced review; null when switched off. */
+    val review: ReviewState? = null,
     val prefs: Prefs = Prefs(),
     /** Page the reader was on, to reopen at the same mishna (SPEC §5). */
     @Serializable(with = LocalDateSerializer::class) val readingDate: LocalDate? = null,

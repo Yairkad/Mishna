@@ -35,7 +35,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.mishna.core.content.Mishnayot
 import app.mishna.core.plan.CompletionMode
+import app.mishna.core.plan.ReviewState
 import app.mishna.core.plan.StudyPlan
+import app.mishna.core.plan.dueReviews
 import app.mishna.core.plan.stats
 import app.mishna.core.plan.streaks
 import app.mishna.core.time.HebrewMonth
@@ -50,7 +52,7 @@ private val WEEKDAYS = listOf("א", "ב", "ג", "ד", "ה", "ו", "ש")
 
 /** History: streaks, stats and a Hebrew-month calendar (DESIGN.md §3.5). */
 @Composable
-fun HistoryScreen(plan: StudyPlan, today: LocalDate) {
+fun HistoryScreen(plan: StudyPlan, today: LocalDate, review: ReviewState? = null) {
     val c = LocalBook.current
     val streaks = plan.streaks(today)
     val stats = plan.stats(today)
@@ -66,6 +68,12 @@ fun HistoryScreen(plan: StudyPlan, today: LocalDate) {
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             StatTile("${stats.learned}", "משניות שנלמדו", Modifier.weight(1f))
             StatTile("${stats.remaining}", "משניות שנותרו", Modifier.weight(1f))
+        }
+        if (review != null) {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                StatTile("${review.done.size}", "חזרות שבוצעו", Modifier.weight(1f))
+                StatTile("${plan.dueReviews(review, today).sumOf { it.count }}", "משניות לחזרה היום", Modifier.weight(1f))
+            }
         }
 
         BookCard(Modifier) {
@@ -83,7 +91,10 @@ fun HistoryScreen(plan: StudyPlan, today: LocalDate) {
             val cells: List<LocalDate?> = List(lead) { null } + month.days
             cells.chunked(7).forEach { week ->
                 Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    week.forEach { d -> DayCell(d, plan, today, Modifier.weight(1f)) { selected = d } }
+                    week.forEach { d ->
+                        val reviewed = d != null && review != null && review.doneOn(d).isNotEmpty()
+                        DayCell(d, plan, today, reviewed, Modifier.weight(1f)) { selected = d }
+                    }
                     repeat(7 - week.size) { Spacer(Modifier.weight(1f)) }
                 }
             }
@@ -91,6 +102,7 @@ fun HistoryScreen(plan: StudyPlan, today: LocalDate) {
                 Legend(c.done, "בוצע")
                 Legend(c.holy, "שבת/חג (מהספר)")
                 Legend(null, "לא הושלם")
+                if (review != null) Legend(c.accent, "• חזרה")
             }
         }
 
@@ -120,6 +132,11 @@ fun HistoryScreen(plan: StudyPlan, today: LocalDate) {
                         Text("יום ${plan.dayNumber(d)} בתוכנית · ${day.count} משניות", fontFamily = Sans, color = c.muted, fontSize = 13.sp)
                         Text(status(day.completed, d, today), fontFamily = Sans, color = c.ink, fontSize = 14.sp)
                     }
+                    review?.doneOn(d)?.takeIf { it.isNotEmpty() }?.let { keys ->
+                        Text("חזרה: " + keys.joinToString(" · ") { k ->
+                            plan.day(k.learned)?.let { Mishnayot.describe(it.start, it.count) } ?: k.label
+                        }, fontFamily = Sans, color = c.muted, fontSize = 13.sp)
+                    }
                 }
             },
             confirmButton = { TextButton(onClick = { selected = null }) { Text("סגירה", color = c.accent, fontFamily = Sans) } },
@@ -135,7 +152,7 @@ private fun status(mode: CompletionMode?, d: LocalDate, today: LocalDate) = when
 }
 
 @Composable
-private fun DayCell(d: LocalDate?, plan: StudyPlan, today: LocalDate, modifier: Modifier, onClick: () -> Unit) {
+private fun DayCell(d: LocalDate?, plan: StudyPlan, today: LocalDate, reviewed: Boolean, modifier: Modifier, onClick: () -> Unit) {
     val c = LocalBook.current
     if (d == null) {
         Spacer(modifier)
@@ -157,13 +174,14 @@ private fun DayCell(d: LocalDate?, plan: StudyPlan, today: LocalDate, modifier: 
                 color = if (d == today) c.accent else if (missed) c.miss else Color.Transparent,
                 shape = shape,
             )
-            .clickable(enabled = day != null, onClick = onClick),
+            .clickable(enabled = day != null || reviewed, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(HebrewMonth.dayLabel(d), fontFamily = Serif, fontSize = 14.sp,
                 color = when { fill != null -> c.onAccent; d.isAfter(today) -> c.muted; else -> c.ink })
             Text("${d.dayOfMonth}", fontFamily = Sans, fontSize = 9.sp, color = if (fill != null) c.onAccent.copy(alpha = .8f) else c.muted)
+            if (reviewed) Box(Modifier.size(4.dp).clip(RoundedCornerShape(2.dp)).background(if (fill != null) c.onAccent else c.accent))
         }
     }
 }

@@ -11,14 +11,19 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
+/** A run of mishnayot to show; [label] marks review sections ("חזרה · משבוע שעבר"). */
+data class StudySection(val start: Int, val count: Int, val label: String? = null)
+
 data class MishnaPage(
     val title: String,
     val text: String,
     val bartenura: String?,
     val ikarTosafotYomTov: String?,
+    val label: String? = null,
 )
 
 data class StudyUi(
+    val sections: List<StudySection> = emptyList(),
     val seder: String = "",
     val heading: String = "",
     val pages: List<MishnaPage> = emptyList(),
@@ -29,22 +34,19 @@ class StudyViewModel(app: Application) : AndroidViewModel(app) {
     private val _ui = MutableStateFlow(StudyUi())
     val ui: StateFlow<StudyUi> = _ui
 
-    private var loaded: Pair<Int, Int>? = null
+    private var loaded: List<StudySection>? = null
 
-    fun load(start: Int, count: Int) {
-        if (loaded == start to count) return
-        loaded = start to count
-        viewModelScope.launch { fill(start, count) }
+    fun load(sections: List<StudySection>) {
+        if (loaded == sections) return
+        loaded = sections
+        viewModelScope.launch { fill(sections) }
     }
 
-    private suspend fun fill(start: Int, count: Int) {
-        val rows = dao.mishnayot(start, count)
-        val comms = dao.commentaries(start, count).groupBy { it.globalIndex }
-        val first = Mishnayot.ref(start)
-        _ui.value = StudyUi(
-            seder = "סדר ${first.seder}",
-            heading = Mishnayot.describe(start, count),
-            pages = rows.map { m ->
+    private suspend fun fill(sections: List<StudySection>) {
+        val pages = sections.flatMap { sec ->
+            val rows = dao.mishnayot(sec.start, sec.count)
+            val comms = dao.commentaries(sec.start, sec.count).groupBy { it.globalIndex }
+            rows.map { m ->
                 val ref = Mishnayot.ref(m.globalIndex)
                 val c = comms[m.globalIndex].orEmpty()
                 MishnaPage(
@@ -52,8 +54,16 @@ class StudyViewModel(app: Application) : AndroidViewModel(app) {
                     text = m.text,
                     bartenura = c.firstOrNull { it.source == CommentarySource.BARTENURA }?.text,
                     ikarTosafotYomTov = c.firstOrNull { it.source == CommentarySource.IKAR_TOSAFOT_YOM_TOV }?.text,
+                    label = sec.label,
                 )
-            },
+            }
+        }
+        val first = sections.firstOrNull()?.let { Mishnayot.ref(it.start) }
+        _ui.value = StudyUi(
+            sections = sections,
+            seder = first?.let { "סדר ${it.seder}" }.orEmpty(),
+            heading = sections.joinToString(" · ") { Mishnayot.describe(it.start, it.count) },
+            pages = pages,
         )
     }
 }

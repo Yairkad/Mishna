@@ -28,6 +28,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.mishna.core.content.Mishnayot
 import app.mishna.core.plan.Marking
+import app.mishna.core.plan.ReviewItem
+import app.mishna.core.plan.ReviewKey
+import app.mishna.core.plan.grouped
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import app.mishna.ui.common.GhostButton
 import app.mishna.core.plan.StudyPlan
 import app.mishna.core.plan.streaks
 import app.mishna.core.time.DayType
@@ -48,8 +55,14 @@ fun HomeScreen(
     plan: StudyPlan,
     today: LocalDate,
     onStart: () -> Unit,
-    onMarkHoly: (List<LocalDate>) -> Unit,
+    onMarkHoly: (dates: List<LocalDate>, reviews: List<ReviewKey>) -> Unit,
     onNewCycle: () -> Unit,
+    /** Due reviews, or null when the review plan is off. */
+    reviews: List<ReviewItem>? = null,
+    /** Reviews that fall on the coming Shabbat/Yom Tov (shown on Erev Shabbat). */
+    reviewsAhead: List<ReviewItem> = emptyList(),
+    reviewsDoneToday: Int = 0,
+    onStartReview: () -> Unit = {},
 ) {
     val c = LocalBook.current
     val day = plan.day(today)
@@ -77,7 +90,7 @@ fun HomeScreen(
                 PrimaryButton("התחל מחזור חדש", onClick = onNewCycle)
             }
 
-            unmarkedHoly.isNotEmpty() -> HolyMarkCard(plan, unmarkedHoly, onMarkHoly)
+            unmarkedHoly.isNotEmpty() -> HolyMarkCard(plan, unmarkedHoly, reviews.orEmpty(), onMarkHoly)
 
             JewishDays.type(today) == DayType.EREV && day != null -> BookCard {
                 Eyebrow("ערב ${if (today.dayOfWeek.value == 5) "שבת" else "חג"} · הלימוד לימים הקרובים")
@@ -104,15 +117,50 @@ fun HomeScreen(
         }
 
         if (day != null && day.count > 0 && !(plan.finished && day.done)) {
-            PrimaryButton(if (day.done) "חזרה ללימוד של היום" else "התחל ללמוד", onClick = onStart)
+            PrimaryButton(if (day.done) "פתח שוב את הלימוד של היום" else "התחל ללמוד", onClick = onStart)
+        }
+
+        if (reviews != null && unmarkedHoly.isEmpty()) ReviewCard(reviews, reviewsAhead, reviewsDoneToday, onStartReview)
+    }
+}
+
+/** "Review for today" (SPEC §12): one row per stage, then a button that opens the review. */
+@Composable
+private fun ReviewCard(due: List<ReviewItem>, ahead: List<ReviewItem>, doneToday: Int, onStart: () -> Unit) {
+    val c = LocalBook.current
+    if (due.isEmpty() && ahead.isEmpty()) {
+        if (doneToday > 0) Text("החזרה של היום הושלמה ✓", color = c.done, fontFamily = Sans, fontSize = 14.sp)
+        return
+    }
+    BookCard {
+        if (due.isNotEmpty()) {
+            Eyebrow("חזרה להיום · ${due.sumOf { it.count }} משניות")
+            due.grouped().forEachIndexed { i, g ->
+                if (i > 0) HorizontalDivider(color = c.line)
+                AssignmentRow(g.label, g.items.joinToString(" · ") { Mishnayot.describe(it.start, it.count) })
+            }
+            Spacer(Modifier.height(10.dp))
+            GhostButton("התחל חזרה", Modifier.fillMaxWidth(), onClick = onStart)
+        }
+        if (ahead.isNotEmpty()) {
+            Eyebrow("חזרה בשבת ובחג (מהספר) · ${ahead.sumOf { it.count }} משניות", Modifier.padding(top = if (due.isEmpty()) 0.dp else 14.dp))
+            ahead.grouped().forEach { g ->
+                AssignmentRow(g.label, g.items.joinToString(" · ") { Mishnayot.describe(it.start, it.count) }, tag = "מהספר")
+            }
         }
     }
 }
 
 @Composable
-private fun HolyMarkCard(plan: StudyPlan, dates: List<LocalDate>, onMark: (List<LocalDate>) -> Unit) {
+private fun HolyMarkCard(
+    plan: StudyPlan,
+    dates: List<LocalDate>,
+    reviews: List<ReviewItem>,
+    onMark: (List<LocalDate>, List<ReviewKey>) -> Unit,
+) {
     val c = LocalBook.current
     val checked = remember(dates) { mutableStateListOf(*dates.toTypedArray()) }
+    var reviewChecked by remember(reviews) { mutableStateOf(true) }
     // Marking re-anchors each day at the first unstudied mishna, in date order.
     val preview = buildMap {
         var from = plan.nextIndex
@@ -137,8 +185,17 @@ private fun HolyMarkCard(plan: StudyPlan, dates: List<LocalDate>, onMark: (List<
                 if (p != null && p.second > 0) Text(Mishnayot.describe(p.first, p.second), fontFamily = Serif, fontSize = 15.sp, color = c.muted)
             }
         }
+        if (reviews.isNotEmpty()) {
+            Row(Modifier.fillMaxWidth().clickable { reviewChecked = !reviewChecked }, verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(reviewChecked, onCheckedChange = null, colors = CheckboxDefaults.colors(checkedColor = c.accent))
+                Text("גם החזרה", fontFamily = Sans, fontSize = 14.sp, color = c.ink, modifier = Modifier.padding(start = 8.dp).weight(1f))
+                Text("${reviews.sumOf { it.count }} משניות", fontFamily = Sans, fontSize = 13.sp, color = c.muted)
+            }
+        }
         Spacer(Modifier.height(12.dp))
-        PrimaryButton("סמן כבוצע", enabled = checked.isNotEmpty()) { onMark(checked.toList()) }
+        PrimaryButton("סמן כבוצע", enabled = checked.isNotEmpty() || (reviewChecked && reviews.isNotEmpty())) {
+            onMark(checked.toList(), if (reviewChecked) reviews.map { it.key } else emptyList())
+        }
     }
 }
 

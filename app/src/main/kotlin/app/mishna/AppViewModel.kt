@@ -8,6 +8,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import app.mishna.core.plan.CompletionMode
 import app.mishna.core.plan.Marking
+import app.mishna.core.plan.ReviewKey
+import app.mishna.core.plan.ReviewState
 import app.mishna.core.plan.StudyPlan
 import app.mishna.core.state.AppState
 import app.mishna.core.state.Prefs
@@ -48,7 +50,24 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun completeToday() = updatePlan { it.complete(studyDate.value, CompletionMode.APP) }
 
-    fun markHolyDays(dates: List<LocalDate>) = updatePlan { Marking.markHolyDays(it, studyDate.value, dates) }
+    /** Marks Shabbat/Yom Tov study after the fact, and optionally the reviews that were due. */
+    fun markHolyDays(dates: List<LocalDate>, reviews: List<ReviewKey>) = viewModelScope.launch {
+        store.update { s ->
+            val plan = s.plan ?: return@update s
+            s.copy(
+                plan = Marking.markHolyDays(plan, studyDate.value, dates),
+                review = s.review?.markReviewed(reviews, studyDate.value),
+            )
+        }
+    }
+
+    fun setReviewEnabled(on: Boolean) = viewModelScope.launch {
+        store.update { it.copy(review = if (on) it.review ?: ReviewState(studyDate.value) else null) }
+    }
+
+    fun markReviewed(keys: List<ReviewKey>) = viewModelScope.launch {
+        store.update { s -> s.copy(review = s.review?.markReviewed(keys, studyDate.value)) }
+    }
 
     fun shiftDay(forward: Boolean) = updatePlan { it.shiftDay(forward, studyDate.value) }
 

@@ -78,8 +78,7 @@ private const val MAX_SPLIT = 0.8f
  */
 @Composable
 fun StudyScreen(
-    start: Int,
-    count: Int,
+    sections: List<StudySection>,
     dayNumber: Int,
     hebrewDate: String,
     done: Boolean,
@@ -90,10 +89,12 @@ fun StudyScreen(
     onSplitRatio: (Float) -> Unit,
     onPageChange: (Int) -> Unit,
     onFinish: () -> Unit,
-    onShiftDay: (forward: Boolean) -> Unit,
+    onShiftDay: ((forward: Boolean) -> Unit)?,
+    finishLabel: String = "סיימתי את הלימוד היום",
+    summaryTitle: String = "סיימת את הלימוד להיום",
     vm: StudyViewModel = viewModel(),
 ) {
-    LaunchedEffect(start, count) { vm.load(start, count) }
+    LaunchedEffect(sections) { vm.load(sections) }
     val ui by vm.ui.collectAsStateWithLifecycle()
     val c = LocalBook.current
     val view = LocalView.current
@@ -101,11 +102,11 @@ fun StudyScreen(
         view.keepScreenOn = keepScreenOn
         onDispose { view.keepScreenOn = false }
     }
-    if (ui.pages.isEmpty() || ui.heading != Mishnayot.describe(start, count)) {
+    if (ui.pages.isEmpty() || ui.sections != sections) {
         Box(Modifier.fillMaxSize().background(c.bg))
         return
     }
-    key(start, count) {
+    key(sections) {
         val pager = rememberPagerState(initialPage = initialPage.coerceIn(0, ui.pages.lastIndex)) { ui.pages.size }
         val scope = rememberCoroutineScope()
         var bottomReached by rememberSaveable { mutableStateOf(false) }
@@ -122,10 +123,11 @@ fun StudyScreen(
             Column(Modifier.fillMaxWidth().padding(start = 18.dp, end = 8.dp, top = 8.dp, bottom = 8.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
-                        Text("${ui.seder} · יום $dayNumber · $hebrewDate", color = c.muted, fontSize = 12.sp, fontFamily = Sans)
+                        val label = ui.pages[pager.currentPage].label
+                        Text(label ?: "${ui.seder} · יום $dayNumber · $hebrewDate", color = if (label != null) c.accent else c.muted, fontSize = 12.sp, fontFamily = Sans)
                         Text(ui.pages[pager.currentPage].title, color = c.ink, fontSize = 19.sp, fontFamily = Serif, fontWeight = FontWeight.Bold)
                     }
-                    TextButton(onClick = { shiftSheet = true }) { Text("⋯", color = c.muted, fontSize = 22.sp) }
+                    if (onShiftDay != null) TextButton(onClick = { shiftSheet = true }) { Text("⋯", color = c.muted, fontSize = 22.sp) }
                 }
                 Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)) {
                     ui.pages.indices.forEach { i ->
@@ -161,6 +163,7 @@ fun StudyScreen(
                 canFinish = bottomReached,
                 onPrev = { scope.launch { pager.animateScrollToPage(pager.currentPage - 1) } },
                 onNext = { scope.launch { pager.animateScrollToPage(pager.currentPage + 1) } },
+                finishLabel = finishLabel,
                 onFinish = { summary = true },
             )
         }
@@ -169,7 +172,7 @@ fun StudyScreen(
             AlertDialog(
                 onDismissRequest = { summary = false },
                 containerColor = c.bg,
-                title = { Text("סיימת את הלימוד להיום", fontFamily = Serif, fontWeight = FontWeight.Bold, color = c.ink) },
+                title = { Text(summaryTitle, fontFamily = Serif, fontWeight = FontWeight.Bold, color = c.ink) },
                 text = { Text("${ui.heading}\n${ui.pages.size} משניות", fontFamily = Serif, color = c.muted, fontSize = 16.sp) },
                 confirmButton = { TextButton(onClick = { summary = false; onFinish() }) { Text("אישור", color = c.accent, fontFamily = Sans) } },
             )
@@ -195,7 +198,7 @@ fun StudyScreen(
                 containerColor = c.bg,
                 title = { Text(if (forward) "להזיז יום קדימה?" else "להזיז יום אחורה?", fontFamily = Serif, fontWeight = FontWeight.Bold, color = c.ink) },
                 text = { Text(if (done) "השינוי יחול מהלימוד של מחר." else "הלימוד של היום ישתנה בהתאם.", fontFamily = Sans, color = c.muted) },
-                confirmButton = { TextButton(onClick = { confirmShift = null; onShiftDay(forward) }) { Text("אישור", color = c.accent, fontFamily = Sans) } },
+                confirmButton = { TextButton(onClick = { confirmShift = null; onShiftDay?.invoke(forward) }) { Text("אישור", color = c.accent, fontFamily = Sans) } },
                 dismissButton = { TextButton(onClick = { confirmShift = null }) { Text("ביטול", color = c.muted, fontFamily = Sans) } },
             )
         }
@@ -290,6 +293,7 @@ private fun SlimFooter(
     canFinish: Boolean,
     onPrev: () -> Unit,
     onNext: () -> Unit,
+    finishLabel: String,
     onFinish: () -> Unit,
 ) {
     val c = LocalBook.current
@@ -305,7 +309,7 @@ private fun SlimFooter(
         Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
             when {
                 done -> FooterButton("הלימוד הושלם ✓", enabled = false) {}
-                last -> FooterButton(if (canFinish) "סיימתי את הלימוד היום" else "גלול עד סוף המשנה לסיום", enabled = canFinish, onClick = onFinish)
+                last -> FooterButton(if (canFinish) finishLabel else "גלול עד סוף המשנה לסיום", enabled = canFinish, onClick = onFinish)
                 else -> Text("משנה ${page + 1} מתוך $pages", color = c.muted, fontFamily = Sans, fontSize = 14.sp)
             }
         }

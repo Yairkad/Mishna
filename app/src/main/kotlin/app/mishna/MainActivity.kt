@@ -42,6 +42,9 @@ import app.mishna.ui.settings.SettingsScreen
 import app.mishna.ui.onboarding.OnboardingScreen
 import app.mishna.ui.study.ReadingPrefs
 import app.mishna.ui.study.StudyScreen
+import app.mishna.ui.study.StudySection
+import app.mishna.core.plan.dueReviews
+import app.mishna.core.plan.grouped
 import app.mishna.ui.theme.LocalBook
 import app.mishna.ui.theme.MishnaTheme
 import app.mishna.ui.theme.Sans
@@ -95,18 +98,51 @@ private fun App(vm: AppViewModel) {
         var tab by rememberSaveable { mutableStateOf(Tab.STUDY) }
         // Opening the app shows the opening card; the study tab goes straight to the text.
         var showHome by rememberSaveable { mutableStateOf(true) }
+        var showReview by rememberSaveable { mutableStateOf(false) }
+        val reviewState = state.review
+        val dueReviews = remember(plan, reviewState, today) { reviewState?.let { plan.dueReviews(it, today) } }
         Column(Modifier.fillMaxSize()) {
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 val day = plan.day(today)
                 when {
+                    tab == Tab.STUDY && showReview && !dueReviews.isNullOrEmpty() -> {
+                        val due = dueReviews.orEmpty()
+                        val sections = remember(due) {
+                            due.grouped().flatMap { g -> g.items.map { StudySection(it.start, it.count, "חזרה · ${g.label}") } }
+                        }
+                        StudyScreen(
+                            sections = sections,
+                            dayNumber = plan.dayNumber(today),
+                            hebrewDate = JewishDays.hebrewDate(today),
+                            done = false,
+                            prefs = ReadingPrefs(state.prefs.fontScale, state.prefs.lineSpacing.factor, state.prefs.showIkarTosafotYomTov),
+                            keepScreenOn = state.prefs.keepScreenOn,
+                            initialPage = 0,
+                            splitRatio = state.prefs.splitRatio,
+                            onSplitRatio = { r -> vm.updatePrefs { it.copy(splitRatio = r) } },
+                            onPageChange = {},
+                            onFinish = { vm.markReviewed(due.map { it.key }); showReview = false; showHome = true },
+                            onShiftDay = null,
+                            finishLabel = "סיימתי את החזרה",
+                            summaryTitle = "סיימת את החזרה להיום",
+                        )
+                    }
                     tab == Tab.STUDY && (showHome || day == null || day.count == 0) -> HomeScreen(
                         name = state.name, plan = plan, today = today,
                         onStart = { showHome = false },
                         onMarkHoly = vm::markHolyDays,
                         onNewCycle = vm::startNewCycle,
+                        reviews = dueReviews,
+                        reviewsAhead = remember(plan, reviewState, today) {
+                            val holy = JewishDays.holyDaysAfter(today)
+                            if (reviewState == null || holy.isEmpty() || JewishDays.isHoly(today)) emptyList()
+                            else plan.dueReviews(reviewState, holy.last()).filter { it.key.due.isAfter(today) }
+                        },
+                        reviewsDoneToday = reviewState?.doneOn(today)?.size ?: 0,
+                        onStartReview = { showReview = true },
                     )
                     tab == Tab.STUDY && day != null -> StudyScreen(
-                        start = day.start, count = day.count,
+                        sections = remember(day.start, day.count) { listOf(StudySection(day.start, day.count)) },
                         dayNumber = plan.dayNumber(today),
                         hebrewDate = JewishDays.hebrewDate(today),
                         done = day.done,
@@ -119,7 +155,7 @@ private fun App(vm: AppViewModel) {
                         onFinish = { vm.completeToday(); showHome = true; tab = Tab.HISTORY },
                         onShiftDay = vm::shiftDay,
                     )
-                    tab == Tab.HISTORY -> HistoryScreen(plan, today)
+                    tab == Tab.HISTORY -> HistoryScreen(plan, today, reviewState)
                     else -> SettingsScreen(
                         state = state, today = today, versionName = BuildConfig.VERSION_NAME,
                         onPrefs = { change -> vm.updatePrefs(change) },
@@ -131,6 +167,7 @@ private fun App(vm: AppViewModel) {
                         onReset = vm::reset,
                         onBackupFolder = vm::setBackupFolder,
                         onBackupNow = vm::backupNow,
+                        onReviewEnabled = vm::setReviewEnabled,
                     )
                 }
             }
@@ -139,6 +176,7 @@ private fun App(vm: AppViewModel) {
                     NavigationBarItem(
                         selected = tab == t,
                         onClick = {
+                            showReview = false
                             if (t == Tab.STUDY && tab == Tab.STUDY) showHome = !showHome
                             if (t == Tab.STUDY && tab != Tab.STUDY) showHome = false
                             tab = t

@@ -12,6 +12,7 @@ import androidx.core.app.NotificationManagerCompat
 import app.mishna.MainActivity
 import app.mishna.R
 import app.mishna.core.content.Mishnayot
+import app.mishna.core.plan.dueReviews
 import app.mishna.data.StateStore
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -31,7 +32,9 @@ class ReminderReceiver : BroadcastReceiver() {
                 } else {
                     "הלימוד של היום: ${Mishnayot.describe(day.start, day.count)}"
                 }
-                notify(context, if (afterHoly) "סימון לימוד השבת" else "משנה יומית", text)
+                val reviewCount = state.review?.let { plan.dueReviews(it, date).sumOf { r -> r.count } } ?: 0
+                val full = if (reviewCount > 0) "$text\n+ חזרה: $reviewCount משניות" else text
+                notify(context, if (afterHoly) "סימון לימוד השבת" else "משנה יומית", full)
             }
         }
         ReminderScheduler.schedule(context, state, after = LocalDateTime.now().plusSeconds(30))
@@ -49,6 +52,7 @@ class ReminderReceiver : BroadcastReceiver() {
             .setSmallIcon(R.drawable.ic_tab_study)
             .setContentTitle(title)
             .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setContentIntent(open)
             .setAutoCancel(true)
             .build()
