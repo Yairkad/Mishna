@@ -4,9 +4,13 @@ import app.mishna.core.state.LocalDateSerializer
 import kotlinx.serialization.Serializable
 import java.time.LocalDate
 
-/** Spaced review stages: tomorrow, a week, a month, three months, then every year (in days). */
+/**
+ * Spaced review stages, as in Shas Chabura: each gap counts from the previous review —
+ * the next day, a week later, 30 days later, 90 days later — then every year on the
+ * anniversary. [days] is the offset from the day studied.
+ */
 @Serializable
-enum class ReviewStage(val days: Int) { DAY(1), WEEK(7), MONTH(30), MONTH3(90), YEAR(365) }
+enum class ReviewStage(val days: Int) { DAY(1), WEEK(1 + 7), MONTH(1 + 7 + 30), MONTH3(1 + 7 + 30 + 90), YEAR(365) }
 
 /** One review of the day [learned] studied. [year] counts the yearly reviews (1, 2, …); 0 for the others. */
 @Serializable

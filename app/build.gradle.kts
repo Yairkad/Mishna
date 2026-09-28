@@ -13,8 +13,10 @@ android {
         applicationId = "app.mishna"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
-        versionName = "0.3.0"
+        // CI numbers each build, so every published APK is newer than the last.
+        val build = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull()
+        versionCode = build ?: 3
+        versionName = "0.4.${build ?: 0}"
     }
 
     signingConfigs {

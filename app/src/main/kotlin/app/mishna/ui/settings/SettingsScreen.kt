@@ -59,6 +59,8 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import app.mishna.core.time.JewishDays
 import app.mishna.core.time.ReminderTimes
+import app.mishna.update.Release
+import app.mishna.update.UpdateStatus
 
 private val DANGER = Color(0xFFB3261E)
 
@@ -85,6 +87,10 @@ fun SettingsScreen(
     onBackupFolder: (android.net.Uri) -> Unit,
     onBackupNow: () -> Unit,
     onReviewEnabled: (Boolean) -> Unit,
+    update: UpdateStatus,
+    onCheckUpdate: () -> Unit,
+    onInstallUpdate: (Release) -> Unit,
+    onOpenPage: (String) -> Unit,
 ) {
     val c = LocalBook.current
     val p = state.prefs
@@ -129,7 +135,7 @@ fun SettingsScreen(
 
         Section("חזרה")
         Item("תוכנית חזרה") { Toggle(state.review?.enabled == true, onReviewEnabled) }
-        Text("חוזרים על כל יום לימוד למחרת, אחרי שבוע, אחרי 30 יום, אחרי 90 יום ואז כל שנה. חזרה שלא בוצעה נשארת עד שמבצעים אותה.",
+        Text("חוזרים על כל יום לימוד למחרת, שבוע אחרי, חודש אחרי ו-3 חודשים אחרי (כל פעם מהחזרה הקודמת), ואז כל שנה ביום השנה. חזרה שלא בוצעה נשארת עד שמבצעים אותה.",
             fontFamily = Sans, fontSize = 12.sp, color = c.muted, modifier = Modifier.padding(vertical = 6.dp))
 
         Section("התראות")
@@ -171,6 +177,18 @@ fun SettingsScreen(
         val places = if (state.place in Place.CITIES) Place.CITIES else listOf(state.place) + Place.CITIES
         Picker("עיר לזמני היום", places, state.place, { it.name }, onPlace, Modifier.padding(top = 8.dp))
         Item("אודות", onClick = { about = true }) { Text("גרסה $versionName", fontFamily = Sans, fontSize = 13.sp, color = c.muted) }
+        when (update) {
+            UpdateStatus.Idle -> Item("בדוק עדכון", accent = true, onClick = onCheckUpdate) {}
+            UpdateStatus.Checking -> Item("בודק…") {}
+            UpdateStatus.UpToDate -> Item("הגרסה עדכנית ✓", onClick = onCheckUpdate) {}
+            is UpdateStatus.Available -> Item("עדכון זמין · הורד והתקן", accent = true, onClick = { onInstallUpdate(update.release) }) {
+                Text(update.release.name, fontFamily = Sans, fontSize = 13.sp, color = c.muted)
+            }
+            is UpdateStatus.Downloading -> Item("מוריד עדכון…") {
+                Text("${(update.progress * 100).toInt()}%", fontFamily = Sans, fontSize = 13.sp, color = c.muted)
+            }
+            is UpdateStatus.Failed -> Item("לא הצלחתי לבדוק · פתח ב-GitHub", accent = true, onClick = { onOpenPage(update.page) }) {}
+        }
 
         Section("מתקדם · דורש אישור")
         Item("קצב לימוד", accent = true, onClick = { advanced = Advanced.PACE }) {

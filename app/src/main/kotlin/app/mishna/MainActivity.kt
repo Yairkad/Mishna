@@ -85,6 +85,7 @@ private fun App(vm: AppViewModel) {
     val today by vm.studyDate.collectAsStateWithLifecycle()
     val plan = state.plan
     val message by vm.message.collectAsStateWithLifecycle()
+    val updateStatus by vm.update.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     LaunchedEffect(message) {
         message?.let { snackbar.showSnackbar(it); vm.messageShown() }
@@ -169,6 +170,10 @@ private fun App(vm: AppViewModel) {
                         onBackupFolder = vm::setBackupFolder,
                         onBackupNow = vm::backupNow,
                         onReviewEnabled = vm::setReviewEnabled,
+                        update = updateStatus,
+                        onCheckUpdate = vm::checkForUpdate,
+                        onInstallUpdate = vm::installUpdate,
+                        onOpenPage = vm::openReleasePage,
                     )
                 }
             }

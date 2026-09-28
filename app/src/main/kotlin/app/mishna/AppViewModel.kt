@@ -4,6 +4,9 @@ import android.app.Application
 import android.content.Intent
 import android.net.Uri
 import app.mishna.backup.BackupWorker
+import app.mishna.update.Release
+import app.mishna.update.UpdateStatus
+import app.mishna.update.Updater
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import app.mishna.core.plan.CompletionMode
@@ -143,6 +146,33 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         BackupWorker.runNow(getApplication())
         _message.value = "מגבה…"
     }
+
+    private val _update = MutableStateFlow<UpdateStatus>(UpdateStatus.Idle)
+    val update: StateFlow<UpdateStatus> = _update
+
+    fun checkForUpdate() = viewModelScope.launch {
+        _update.value = UpdateStatus.Checking
+        _update.value = runCatching { Updater.check() }.fold(
+            { it?.let(UpdateStatus::Available) ?: UpdateStatus.UpToDate },
+            { UpdateStatus.Failed(Updater.RELEASES_PAGE) },
+        )
+    }
+
+    /** Downloads and opens the installer. Without install permission it opens that setting first. */
+    fun installUpdate(release: Release) = viewModelScope.launch {
+        val app = getApplication<Application>()
+        if (!Updater.canInstall(app)) {
+            Updater.openInstallPermission(app)
+            _message.value = "אשר התקנה מהאפליקציה, ואז לחץ שוב על הורד והתקן"
+            return@launch
+        }
+        _update.value = UpdateStatus.Downloading(release, 0f)
+        runCatching { Updater.download(app, release) { p -> _update.value = UpdateStatus.Downloading(release, p) } }
+            .onSuccess { Updater.install(app, it); _update.value = UpdateStatus.Available(release) }
+            .onFailure { _update.value = UpdateStatus.Failed(release.page) }
+    }
+
+    fun openReleasePage(url: String) = Updater.openPage(getApplication(), url)
 
     fun updatePrefs(change: (Prefs) -> Prefs) = viewModelScope.launch {
         store.update { it.copy(prefs = change(it.prefs)) }

@@ -18,9 +18,9 @@ class ReviewTest {
 
     @Test fun dueDates() {
         assertEquals(d0.plusDays(1), ReviewKey(d0, ReviewStage.DAY).due)
-        assertEquals(d0.plusDays(7), ReviewKey(d0, ReviewStage.WEEK).due)
-        assertEquals(d0.plusDays(30), ReviewKey(d0, ReviewStage.MONTH).due)
-        assertEquals(d0.plusDays(90), ReviewKey(d0, ReviewStage.MONTH3).due)
+        assertEquals(d0.plusDays(8), ReviewKey(d0, ReviewStage.WEEK).due)
+        assertEquals(d0.plusDays(38), ReviewKey(d0, ReviewStage.MONTH).due)
+        assertEquals(d0.plusDays(128), ReviewKey(d0, ReviewStage.MONTH3).due)
         assertEquals(d0.plusDays(365), ReviewKey(d0, ReviewStage.YEAR, 1).due)
         assertEquals(d0.plusDays(730), ReviewKey(d0, ReviewStage.YEAR, 2).due)
     }
@@ -37,11 +37,11 @@ class ReviewTest {
     }
 
     @Test fun afterAWeek() {
-        val today = d0.plusDays(7)
+        val today = d0.plusDays(8)
         val state = ReviewState(d0)
-        // Each day's DAY review is done, so only yesterday's and last week's remain.
-        val doneDays = (1L..6L).map { ReviewKey(d0.plusDays(it - 1), ReviewStage.DAY) }
-        val p = plan(7)
+        // Each earlier DAY review is done, so only yesterday's and last week's remain.
+        val doneDays = (0L..6L).map { ReviewKey(d0.plusDays(it), ReviewStage.DAY) }
+        val p = plan(8)
         val due = p.dueReviews(state.markReviewed(doneDays, d0), today)
         assertEquals(listOf(ReviewStage.WEEK, ReviewStage.DAY), due.map { it.key.stage })
         val groups = due.grouped()
@@ -60,8 +60,8 @@ class ReviewTest {
         val enabled = d0.plusDays(100)
         val due = p.dueReviews(ReviewState(enabled), enabled)
         assertTrue(due.all { it.key.due == enabled }, due.toString())
-        // d0+99 → DAY, d0+93 → WEEK, d0+70 → MONTH, d0+10 → MONTH3.
-        assertEquals(setOf(ReviewStage.DAY, ReviewStage.WEEK, ReviewStage.MONTH, ReviewStage.MONTH3), due.map { it.key.stage }.toSet())
+        // d0+99 → DAY, d0+92 → WEEK, d0+62 → MONTH; MONTH3 needs a day 128 days back.
+        assertEquals(setOf(ReviewStage.DAY, ReviewStage.WEEK, ReviewStage.MONTH), due.map { it.key.stage }.toSet())
     }
 
     @Test fun onlyStudiedDaysAreReviewed() {
