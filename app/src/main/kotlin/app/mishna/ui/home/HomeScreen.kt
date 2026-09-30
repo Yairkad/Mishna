@@ -104,6 +104,10 @@ fun HomeScreen(
             }
 
             day != null && day.count > 0 -> BookCard {
+                if (day.done) {
+                    Text("סיימת את הלימוד להיום ✓", fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = c.done,
+                        modifier = Modifier.padding(bottom = 6.dp))
+                }
                 Eyebrow("הלימוד של היום · יום ${plan.dayNumber(today)} בתוכנית")
                 val ref = Mishnayot.ref(day.start)
                 Text(Mishnayot.describe(day.start, day.count), fontFamily = Serif, fontSize = 26.sp, lineHeight = 34.sp,
@@ -111,22 +115,24 @@ fun HomeScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text("${day.count} משניות", color = c.muted, fontFamily = Sans, fontSize = 13.sp)
                     Text("סדר ${ref.seder}", color = c.muted, fontFamily = Sans, fontSize = 13.sp)
-                    if (day.done) Tag("הושלם היום ✓", c.done, c.onAccent)
                 }
             }
         }
 
-        if (day != null && day.count > 0 && !(plan.finished && day.done)) {
-            PrimaryButton(if (day.done) "פתח שוב את הלימוד של היום" else "התחל ללמוד", onClick = onStart)
+        val showStudy = day != null && day.count > 0 && !(plan.finished && day.done)
+        if (showStudy && day?.done == false) PrimaryButton("התחל ללמוד", onClick = onStart)
+
+        if (reviews != null && unmarkedHoly.isEmpty()) {
+            ReviewCard(reviews, reviewsAhead, reviewsDoneToday, primary = day?.done == true, onStart = onStartReview)
         }
 
-        if (reviews != null && unmarkedHoly.isEmpty()) ReviewCard(reviews, reviewsAhead, reviewsDoneToday, onStartReview)
+        if (showStudy && day?.done == true) GhostButton("למד שוב את הלימוד של היום", Modifier.fillMaxWidth(), onClick = onStart)
     }
 }
 
 /** "Review for today" (SPEC §12): one row per stage, then a button that opens the review. */
 @Composable
-private fun ReviewCard(due: List<ReviewItem>, ahead: List<ReviewItem>, doneToday: Int, onStart: () -> Unit) {
+private fun ReviewCard(due: List<ReviewItem>, ahead: List<ReviewItem>, doneToday: Int, primary: Boolean, onStart: () -> Unit) {
     val c = LocalBook.current
     if (due.isEmpty() && ahead.isEmpty()) {
         if (doneToday > 0) Text("החזרה של היום הושלמה ✓", color = c.done, fontFamily = Sans, fontSize = 14.sp)
@@ -140,7 +146,7 @@ private fun ReviewCard(due: List<ReviewItem>, ahead: List<ReviewItem>, doneToday
                 AssignmentRow(g.label, g.items.joinToString(" · ") { Mishnayot.describe(it.start, it.count) })
             }
             Spacer(Modifier.height(10.dp))
-            GhostButton("התחל חזרה", Modifier.fillMaxWidth(), onClick = onStart)
+            if (primary) PrimaryButton("התחל חזרה", onClick = onStart) else GhostButton("התחל חזרה", Modifier.fillMaxWidth(), onClick = onStart)
         }
         if (ahead.isNotEmpty()) {
             Eyebrow("חזרה בשבת ובחג (מהספר) · ${ahead.sumOf { it.count }} משניות", Modifier.padding(top = if (due.isEmpty()) 0.dp else 14.dp))

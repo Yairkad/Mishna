@@ -154,7 +154,7 @@ private fun App(vm: AppViewModel) {
                         splitRatio = state.prefs.splitRatio,
                         onSplitRatio = { r -> vm.updatePrefs { it.copy(splitRatio = r) } },
                         onPageChange = vm::setReadingPage,
-                        onFinish = { vm.completeToday(); showHome = true; tab = Tab.HISTORY },
+                        onFinish = { vm.completeToday(); showHome = true },
                         onShiftDay = vm::shiftDay,
                     )
                     tab == Tab.HISTORY -> HistoryScreen(plan, today, reviewState)
@@ -184,7 +184,7 @@ private fun App(vm: AppViewModel) {
                         onClick = {
                             showReview = false
                             if (t == Tab.STUDY && tab == Tab.STUDY) showHome = !showHome
-                            if (t == Tab.STUDY && tab != Tab.STUDY) showHome = false
+                            if (t == Tab.STUDY && tab != Tab.STUDY) showHome = plan.day(today)?.done == true
                             tab = t
                         },
                         icon = { Icon(painterResource(t.icon), contentDescription = null) },
