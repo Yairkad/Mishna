@@ -33,10 +33,10 @@ jobs:
           path: app/build/outputs/apk/debug/*.apk
       # Each push publishes a release; the app's "check for update" reads the latest one.
       - name: Publish release
-        if: github.event_name == 'push'
+        if: github.event_name != 'pull_request'
         run: cp app/build/outputs/apk/debug/app-debug.apk mishna.apk
       - uses: softprops/action-gh-release@v2
-        if: github.event_name == 'push'
+        if: github.event_name != 'pull_request'
         with:
           tag_name: build-${{ github.run_number }}
           name: גרסה ${{ env.VERSION_NAME }}
