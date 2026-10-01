@@ -16,7 +16,7 @@ android {
         // CI numbers each build, so every published APK is newer than the last.
         val build = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull()
         versionCode = build ?: 3
-        versionName = "0.4.${build ?: 0}"
+        versionName = System.getenv("VERSION_NAME") ?: "1.5.0-dev"
     }
 
     signingConfigs {

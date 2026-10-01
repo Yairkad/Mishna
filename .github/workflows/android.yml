@@ -18,6 +18,11 @@ jobs:
           distribution: temurin
           java-version: 17
       - uses: gradle/actions/setup-gradle@v4
+      # Version 1.5.0 from run 14, +0.0.1 per build; after x.y.9 comes x.(y+1).0, after x.9.9 comes (x+1).0.0.
+      - name: Version
+        run: |
+          n=$(( ${{ github.run_number }} - 14 + 150 ))
+          echo "VERSION_NAME=$((n / 100)).$(((n / 10) % 10)).$((n % 10))" >> "$GITHUB_ENV"
       - name: Core tests
         run: ./gradlew :core:test
       - name: Build debug APK
@@ -34,7 +39,7 @@ jobs:
         if: github.event_name == 'push'
         with:
           tag_name: build-${{ github.run_number }}
-          name: גרסה 0.4.${{ github.run_number }}
+          name: גרסה ${{ env.VERSION_NAME }}
           target_commitish: ${{ github.sha }}
           files: mishna.apk
           make_latest: true
