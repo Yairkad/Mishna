@@ -158,7 +158,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         _update.value = UpdateStatus.Checking
         _update.value = runCatching { Updater.check() }.fold(
             { it?.let(UpdateStatus::Available) ?: UpdateStatus.UpToDate },
-            { UpdateStatus.Failed(Updater.RELEASES_PAGE) },
+            { UpdateStatus.Failed(Updater.RELEASES_PAGE, it.message ?: it.javaClass.simpleName) },
         )
     }
 
@@ -171,9 +171,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             return@launch
         }
         _update.value = UpdateStatus.Downloading(release, 0f)
-        runCatching { Updater.download(app, release) { p -> _update.value = UpdateStatus.Downloading(release, p) } }
-            .onSuccess { Updater.install(app, it); _update.value = UpdateStatus.Available(release) }
-            .onFailure { _update.value = UpdateStatus.Failed(release.page) }
+        runCatching {
+            val apk = Updater.download(app, release) { p -> _update.value = UpdateStatus.Downloading(release, p) }
+            Updater.install(app, apk)
+        }
+            .onSuccess { _update.value = UpdateStatus.Available(release) }
+            .onFailure { _update.value = UpdateStatus.Failed(release.page, it.message ?: it.javaClass.simpleName) }
     }
 
     fun openReleasePage(url: String) = Updater.openPage(getApplication(), url)

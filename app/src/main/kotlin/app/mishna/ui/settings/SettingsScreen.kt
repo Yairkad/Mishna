@@ -187,7 +187,11 @@ fun SettingsScreen(
             is UpdateStatus.Downloading -> Item("מוריד עדכון…") {
                 Text("${(update.progress * 100).toInt()}%", fontFamily = Sans, fontSize = 13.sp, color = c.muted)
             }
-            is UpdateStatus.Failed -> Item("לא הצלחתי לבדוק · פתח ב-GitHub", accent = true, onClick = { onOpenPage(update.page) }) {}
+            is UpdateStatus.Failed -> {
+                Item("העדכון נכשל · נסה שוב", accent = true, onClick = onCheckUpdate) {}
+                Text(update.reason, fontFamily = Sans, fontSize = 12.sp, color = c.muted, modifier = Modifier.padding(top = 4.dp))
+                Item("הורדה ידנית מ-GitHub", onClick = { onOpenPage(update.page) }) {}
+            }
         }
 
         Section("מתקדם · דורש אישור")
