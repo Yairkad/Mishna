@@ -38,6 +38,9 @@ import app.mishna.core.plan.CompletionMode
 import app.mishna.core.plan.ReviewState
 import app.mishna.core.plan.StudyPlan
 import app.mishna.core.plan.dueReviews
+import app.mishna.core.plan.ReviewDay
+import app.mishna.core.plan.reviewDay
+import app.mishna.core.plan.reviewsDueOn
 import app.mishna.core.plan.stats
 import app.mishna.core.plan.streaks
 import app.mishna.core.time.HebrewMonth
@@ -92,8 +95,8 @@ fun HistoryScreen(plan: StudyPlan, today: LocalDate, review: ReviewState? = null
             cells.chunked(7).forEach { week ->
                 Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     week.forEach { d ->
-                        val reviewed = d != null && review != null && review.doneOn(d).isNotEmpty()
-                        DayCell(d, plan, today, reviewed, Modifier.weight(1f)) { selected = d }
+                        val reviewDay = if (d != null && review != null) plan.reviewDay(review, d, today) else ReviewDay.NONE
+                        DayCell(d, plan, today, reviewDay, Modifier.weight(1f)) { selected = d }
                     }
                     repeat(7 - week.size) { Spacer(Modifier.weight(1f)) }
                 }
@@ -102,7 +105,10 @@ fun HistoryScreen(plan: StudyPlan, today: LocalDate, review: ReviewState? = null
                 Legend(c.done, "בוצע")
                 Legend(c.holy, "שבת/חג (מהספר)")
                 Legend(null, "לא הושלם")
-                if (review != null && review.done.isNotEmpty()) Legend(c.accent, "• חזרה")
+            }
+            if (review != null) Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                ReviewLegend(filled = true, "חזרה בוצעה")
+                ReviewLegend(filled = false, "חזרה לא בוצעה")
             }
         }
 
@@ -132,10 +138,16 @@ fun HistoryScreen(plan: StudyPlan, today: LocalDate, review: ReviewState? = null
                         Text("יום ${plan.dayNumber(d)} בתוכנית · ${day.count} משניות", fontFamily = Sans, color = c.muted, fontSize = 13.sp)
                         Text(status(day.completed, d, today), fontFamily = Sans, color = c.ink, fontSize = 14.sp)
                     }
-                    review?.doneOn(d)?.takeIf { it.isNotEmpty() }?.let { keys ->
-                        Text("חזרה: " + keys.joinToString(" · ") { k ->
-                            plan.day(k.learned)?.let { Mishnayot.describe(it.start, it.count) } ?: k.label
-                        }, fontFamily = Sans, color = c.muted, fontSize = 13.sp)
+                    val due = if (review != null) plan.reviewsDueOn(review, d) else emptyList()
+                    if (review != null && due.isNotEmpty()) {
+                        Text("חזרה ביום זה:", fontFamily = Sans, color = c.ink, fontSize = 14.sp, modifier = Modifier.padding(top = 6.dp))
+                        due.forEach { item ->
+                            val done = review.isDone(item.key)
+                            Text(
+                                "${if (done) "✓" else "✗"} ${item.key.label}: ${Mishnayot.describe(item.start, item.count)}",
+                                fontFamily = Sans, fontSize = 13.sp, color = if (done) c.done else c.muted,
+                            )
+                        }
                     }
                 }
             },
@@ -152,7 +164,7 @@ private fun status(mode: CompletionMode?, d: LocalDate, today: LocalDate) = when
 }
 
 @Composable
-private fun DayCell(d: LocalDate?, plan: StudyPlan, today: LocalDate, reviewed: Boolean, modifier: Modifier, onClick: () -> Unit) {
+private fun DayCell(d: LocalDate?, plan: StudyPlan, today: LocalDate, reviewDay: ReviewDay, modifier: Modifier, onClick: () -> Unit) {
     val c = LocalBook.current
     if (d == null) {
         Spacer(modifier)
@@ -174,14 +186,22 @@ private fun DayCell(d: LocalDate?, plan: StudyPlan, today: LocalDate, reviewed: 
                 color = if (d == today) c.accent else if (missed) c.miss else Color.Transparent,
                 shape = shape,
             )
-            .clickable(enabled = day != null || reviewed, onClick = onClick),
+            .clickable(enabled = day != null || reviewDay != ReviewDay.NONE, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(HebrewMonth.dayLabel(d), fontFamily = Serif, fontSize = 14.sp,
                 color = when { fill != null -> c.onAccent; d.isAfter(today) -> c.muted; else -> c.ink })
             Text("${d.dayOfMonth}", fontFamily = Sans, fontSize = 9.sp, color = if (fill != null) c.onAccent.copy(alpha = .8f) else c.muted)
-            if (reviewed) Box(Modifier.size(4.dp).clip(RoundedCornerShape(2.dp)).background(if (fill != null) c.onAccent else c.accent))
+            // Review: filled dot = done, ring = not done.
+            if (reviewDay != ReviewDay.NONE) {
+                val dot = if (fill != null) c.onAccent else c.accent
+                Box(
+                    Modifier.size(6.dp).clip(RoundedCornerShape(3.dp))
+                        .background(if (reviewDay == ReviewDay.DONE) dot else Color.Transparent)
+                        .border(1.dp, dot, RoundedCornerShape(3.dp)),
+                )
+            }
         }
     }
 }
@@ -202,6 +222,16 @@ private fun Legend(color: Color?, label: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.size(10.dp).clip(RoundedCornerShape(3.dp)).background(color ?: Color.Transparent)
             .border(if (color == null) 1.5.dp else 0.dp, c.miss, RoundedCornerShape(3.dp)))
+        Text(label, fontFamily = Sans, fontSize = 11.sp, color = c.muted, modifier = Modifier.padding(start = 4.dp))
+    }
+}
+
+@Composable
+private fun ReviewLegend(filled: Boolean, label: String) {
+    val c = LocalBook.current
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(7.dp).clip(RoundedCornerShape(4.dp)).background(if (filled) c.accent else Color.Transparent)
+            .border(1.dp, c.accent, RoundedCornerShape(4.dp)))
         Text(label, fontFamily = Sans, fontSize = 11.sp, color = c.muted, modifier = Modifier.padding(start = 4.dp))
     }
 }

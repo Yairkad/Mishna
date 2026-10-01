@@ -60,7 +60,9 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.mishna.R
+import app.mishna.core.content.Marker
 import app.mishna.core.content.Mishnayot
+import androidx.compose.ui.text.style.BaselineShift
 import app.mishna.ui.common.GhostButton
 import app.mishna.ui.theme.LocalBook
 import app.mishna.ui.theme.Sans
@@ -234,7 +236,7 @@ private fun SplitPage(
             LaunchedEffect(atEnd, isCurrent) { if (atEnd && isCurrent) onMishnaEnd() }
             Box(Modifier.fillMaxWidth().weight(ratio).verticalScroll(scroll)) {
                 Text(
-                    page.text,
+                    if (prefs.showIkarTosafotYomTov) withMarkers(page.text, page.markers, c.accent) else AnnotatedString(page.text),
                     color = c.ink,
                     style = TextStyle(fontFamily = Serif, fontSize = (21 * prefs.fontScale).sp, lineHeight = prefs.lineHeight.em),
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
@@ -339,6 +341,20 @@ private fun FooterButton(text: String, enabled: Boolean, onClick: () -> Unit) {
         colors = ButtonDefaults.buttonColors(containerColor = c.accent, contentColor = c.onAccent, disabledContainerColor = c.soft, disabledContentColor = c.muted),
     ) { Text(text, fontFamily = Sans, fontSize = if (enabled) 15.sp else 13.sp, fontWeight = FontWeight.Medium, maxLines = 1) }
 }
+
+/** Inserts the Ikar Tosafot Yom Tov letters, small and raised, like a printed Mishna. */
+private fun withMarkers(text: String, markers: List<Marker>, color: androidx.compose.ui.graphics.Color): AnnotatedString =
+    buildAnnotatedString {
+        var at = 0
+        for (m in markers.sortedBy { it.offset }) {
+            append(text.substring(at, m.offset))
+            withStyle(SpanStyle(color = color, fontSize = 0.6.em, baselineShift = BaselineShift(0.35f), fontFamily = Sans)) {
+                append("(${m.label})")
+            }
+            at = m.offset
+        }
+        append(text.substring(at))
+    }
 
 /** Commentary text keeps only <b>…</b> (the dibur hamatchil) and newlines between comments. */
 private fun boldMarkup(s: String): AnnotatedString = buildAnnotatedString {

@@ -95,6 +95,25 @@ private fun keysUpTo(learned: LocalDate, date: LocalDate): Sequence<ReviewKey> =
     }
 }
 
+enum class ReviewDay { NONE, DONE, PENDING, MISSED }
+
+/** Reviews that fall due on exactly [date] (while the plan is on). */
+fun StudyPlan.reviewsDueOn(state: ReviewState, date: LocalDate): List<ReviewItem> =
+    if (date.isBefore(state.enabledFrom)) emptyList() else days.values
+        .filter { it.done && it.count > 0 && it.date.isBefore(date) }
+        .flatMap { day -> keysUpTo(day.date, date).filter { it.due == date }.map { ReviewItem(it, day.start, day.count) } }
+
+/** For the history calendar: were the reviews due on [date] done (on that day or later)? */
+fun StudyPlan.reviewDay(state: ReviewState, date: LocalDate, today: LocalDate): ReviewDay {
+    val due = reviewsDueOn(state, date)
+    return when {
+        due.isEmpty() -> ReviewDay.NONE
+        due.all { state.isDone(it.key) } -> ReviewDay.DONE
+        date.isBefore(today) -> ReviewDay.MISSED
+        else -> ReviewDay.PENDING
+    }
+}
+
 /** Groups by stage in a fixed order: yesterday, last week, a month, three months, then years. */
 fun List<ReviewItem>.grouped(): List<ReviewGroup> =
     groupBy { it.key.stage to it.key.year }

@@ -4,6 +4,8 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import app.mishna.core.content.Hebrew
+import app.mishna.core.content.Marker
+import app.mishna.core.content.Markers
 import app.mishna.core.content.Mishnayot
 import app.mishna.data.CommentarySource
 import app.mishna.data.ContentDatabase
@@ -20,6 +22,8 @@ data class MishnaPage(
     val bartenura: String?,
     val ikarTosafotYomTov: String?,
     val label: String? = null,
+    /** Ikar Tosafot Yom Tov letters to show inside the mishna text. */
+    val markers: List<Marker> = emptyList(),
 )
 
 data class StudyUi(
@@ -55,6 +59,8 @@ class StudyViewModel(app: Application) : AndroidViewModel(app) {
                     bartenura = c.firstOrNull { it.source == CommentarySource.BARTENURA }?.text,
                     ikarTosafotYomTov = c.firstOrNull { it.source == CommentarySource.IKAR_TOSAFOT_YOM_TOV }?.text,
                     label = sec.label,
+                    markers = c.firstOrNull { it.source == CommentarySource.IKAR_TOSAFOT_YOM_TOV }?.text
+                        ?.let { Markers.place(m.text, it) }.orEmpty(),
                 )
             }
         }

@@ -79,6 +79,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun startNewCycle() = updatePlan { it.startNewCycle(studyDate.value) }
 
+    fun setReviewPage(page: Int) = viewModelScope.launch {
+        store.update { it.copy(reviewDate = studyDate.value, reviewPage = page) }
+    }
+
     fun setReadingPage(page: Int) = viewModelScope.launch {
         store.update { it.copy(readingDate = studyDate.value, readingPage = page) }
     }

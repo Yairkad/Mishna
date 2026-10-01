@@ -62,6 +62,9 @@ data class AppState(
     /** Page the reader was on, to reopen at the same mishna (SPEC §5). */
     @Serializable(with = LocalDateSerializer::class) val readingDate: LocalDate? = null,
     val readingPage: Int = 0,
+    /** Where the review was left off today, to continue from the same mishna. */
+    @Serializable(with = LocalDateSerializer::class) val reviewDate: LocalDate? = null,
+    val reviewPage: Int = 0,
 ) {
     companion object {
         private val json = Json {
