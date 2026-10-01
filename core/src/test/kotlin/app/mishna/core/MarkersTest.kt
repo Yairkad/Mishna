@@ -55,4 +55,15 @@ class MarkersTest {
         assertEquals(listOf("ב-ג"), inBart.map { it.label })
         assertEquals(bart.indexOf("וְטָבְלוּ") + "וְטָבְלוּ".length, inBart.single().offset)
     }
+
+    @Test fun leadingLetterWithoutPlaceJoinsNext() {
+        val comm = "(י) בלי דיבור המתחיל\n(יא) עוד הערה\n(יב) <b>עַד סוֹף הָאַשְׁמוּרָה.</b> x"
+        assertEquals(listOf("י-יב"), Markers.place(mishna, comm).map { it.label })
+    }
+
+    @Test fun noFutureReviewMarks() {
+        val d0 = LocalDate.of(2026, 1, 1)
+        val plan = StudyPlan.create(d0, 0, 3, today = d0.plusDays(1))
+        assertEquals(ReviewDay.NONE, plan.reviewDay(ReviewState(d0), d0.plusDays(8), d0.plusDays(1)))
+    }
 }

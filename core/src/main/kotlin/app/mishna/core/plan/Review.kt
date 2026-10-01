@@ -112,6 +112,7 @@ fun StudyPlan.reviewsDoneOn(state: ReviewState, date: LocalDate): List<ReviewIte
  * day was done (even later); MISSED/PENDING when reviews were due and some are still open.
  */
 fun StudyPlan.reviewDay(state: ReviewState, date: LocalDate, today: LocalDate): ReviewDay {
+    if (date.isAfter(today)) return ReviewDay.NONE
     val due = reviewsDueOn(state, date)
     return when {
         state.doneOn(date).isNotEmpty() && due.all { state.isDone(it.key) } -> ReviewDay.DONE
