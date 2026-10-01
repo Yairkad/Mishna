@@ -41,5 +41,18 @@ class MarkersTest {
         assertEquals(ReviewDay.PENDING, plan.reviewDay(state, d0.plusDays(3), d0.plusDays(3)))
         val done = state.markReviewed(listOf(ReviewKey(d0, ReviewStage.DAY)), d0.plusDays(2))
         assertEquals(ReviewDay.DONE, plan.reviewDay(done, d0.plusDays(1), d0.plusDays(3)))
+        // A review done on a day it was not due (carried over) still marks that day.
+        val onlyCarried = state.markReviewed(listOf(ReviewKey(d0, ReviewStage.DAY)), d0.plusDays(4))
+        val later = StudyPlan.create(d0, 0, 3, today = d0.plusDays(4), notStudied = setOf(d0.plusDays(1), d0.plusDays(2), d0.plusDays(3)))
+        assertEquals(ReviewDay.DONE, later.reviewDay(onlyCarried, d0.plusDays(4), d0.plusDays(4)))
+    }
+
+    @Test fun lettersInBartenura() {
+        val bart = "<b>מֵאֵימָתַי קוֹרִין</b>. מִשָּׁעָה שֶׁהַכֹּהֲנִים נִכְנָסִין. כֹּהֲנִים שֶׁנִּטְמְאוּ וְטָבְלוּ"
+        val comm = "(א) <b>מֵאֵימָתַי כוּ'.</b> x\n(ב) <b>שֶׁנִּטְמְאוּ וְטָבְלוּ.</b> y\n(ג) z"
+        val (inMishna, inBart) = Markers.placeBoth(mishna, bart, comm)
+        assertEquals(listOf("א"), inMishna.map { it.label })
+        assertEquals(listOf("ב-ג"), inBart.map { it.label })
+        assertEquals(bart.indexOf("וְטָבְלוּ") + "וְטָבְלוּ".length, inBart.single().offset)
     }
 }

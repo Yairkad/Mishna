@@ -103,11 +103,19 @@ fun StudyPlan.reviewsDueOn(state: ReviewState, date: LocalDate): List<ReviewItem
         .filter { it.done && it.count > 0 && it.date.isBefore(date) }
         .flatMap { day -> keysUpTo(day.date, date).filter { it.due == date }.map { ReviewItem(it, day.start, day.count) } }
 
-/** For the history calendar: were the reviews due on [date] done (on that day or later)? */
+/** Reviews actually done on [date], whenever they were due. */
+fun StudyPlan.reviewsDoneOn(state: ReviewState, date: LocalDate): List<ReviewItem> =
+    state.doneOn(date).mapNotNull { key -> days[key.learned]?.let { ReviewItem(key, it.start, it.count) } }
+
+/**
+ * For the history calendar. DONE when reviews were done that day, or when every review due that
+ * day was done (even later); MISSED/PENDING when reviews were due and some are still open.
+ */
 fun StudyPlan.reviewDay(state: ReviewState, date: LocalDate, today: LocalDate): ReviewDay {
     val due = reviewsDueOn(state, date)
     return when {
-        due.isEmpty() -> ReviewDay.NONE
+        state.doneOn(date).isNotEmpty() && due.all { state.isDone(it.key) } -> ReviewDay.DONE
+        due.isEmpty() -> if (state.doneOn(date).isNotEmpty()) ReviewDay.DONE else ReviewDay.NONE
         due.all { state.isDone(it.key) } -> ReviewDay.DONE
         date.isBefore(today) -> ReviewDay.MISSED
         else -> ReviewDay.PENDING

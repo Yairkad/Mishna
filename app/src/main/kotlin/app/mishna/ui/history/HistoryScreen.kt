@@ -41,6 +41,7 @@ import app.mishna.core.plan.dueReviews
 import app.mishna.core.plan.ReviewDay
 import app.mishna.core.plan.reviewDay
 import app.mishna.core.plan.reviewsDueOn
+import app.mishna.core.plan.reviewsDoneOn
 import app.mishna.core.plan.stats
 import app.mishna.core.plan.streaks
 import app.mishna.core.time.HebrewMonth
@@ -138,7 +139,7 @@ fun HistoryScreen(plan: StudyPlan, today: LocalDate, review: ReviewState? = null
                         Text("יום ${plan.dayNumber(d)} בתוכנית · ${day.count} משניות", fontFamily = Sans, color = c.muted, fontSize = 13.sp)
                         Text(status(day.completed, d, today), fontFamily = Sans, color = c.ink, fontSize = 14.sp)
                     }
-                    val due = if (review != null) plan.reviewsDueOn(review, d) else emptyList()
+                    val due = if (review != null) (plan.reviewsDueOn(review, d) + plan.reviewsDoneOn(review, d)).distinctBy { it.key } else emptyList()
                     if (review != null && due.isNotEmpty()) {
                         Text("חזרה ביום זה:", fontFamily = Sans, color = c.ink, fontSize = 14.sp, modifier = Modifier.padding(top = 6.dp))
                         due.forEach { item ->
@@ -190,18 +191,18 @@ private fun DayCell(d: LocalDate?, plan: StudyPlan, today: LocalDate, reviewDay:
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(HebrewMonth.dayLabel(d), fontFamily = Serif, fontSize = 14.sp,
+            Text(HebrewMonth.dayLabel(d), fontFamily = Serif, fontSize = 14.sp, lineHeight = 15.sp,
                 color = when { fill != null -> c.onAccent; d.isAfter(today) -> c.muted; else -> c.ink })
-            Text("${d.dayOfMonth}", fontFamily = Sans, fontSize = 9.sp, color = if (fill != null) c.onAccent.copy(alpha = .8f) else c.muted)
-            // Review: filled dot = done, ring = not done.
-            if (reviewDay != ReviewDay.NONE) {
-                val dot = if (fill != null) c.onAccent else c.accent
-                Box(
-                    Modifier.size(6.dp).clip(RoundedCornerShape(3.dp))
-                        .background(if (reviewDay == ReviewDay.DONE) dot else Color.Transparent)
-                        .border(1.dp, dot, RoundedCornerShape(3.dp)),
-                )
-            }
+            Text("${d.dayOfMonth}", fontFamily = Sans, fontSize = 9.sp, lineHeight = 10.sp, color = if (fill != null) c.onAccent.copy(alpha = .8f) else c.muted)
+        }
+        // Review, in the corner so it is never cut off: filled dot = done, ring = not done.
+        if (reviewDay != ReviewDay.NONE) {
+            val dot = if (fill != null) c.onAccent else c.accent
+            Box(
+                Modifier.align(Alignment.TopStart).padding(5.dp).size(7.dp).clip(RoundedCornerShape(4.dp))
+                    .background(if (reviewDay == ReviewDay.DONE) dot else Color.Transparent)
+                    .border(1.5.dp, dot, RoundedCornerShape(4.dp)),
+            )
         }
     }
 }

@@ -274,8 +274,10 @@ private fun SplitPage(
                         }
                     }
                     Box(Modifier.fillMaxSize().background(c.bg).verticalScroll(rememberScrollState())) {
+                        val raw = commentaries[current].second
+                        val marked = if (prefs.showIkarTosafotYomTov && raw == page.bartenura) withMarkerTokens(raw, page.bartenuraMarkers) else raw
                         Text(
-                            boldMarkup(commentaries[current].second),
+                            boldMarkup(marked, c.accent),
                             color = c.ink,
                             style = TextStyle(fontFamily = Serif, fontSize = (16 * prefs.fontScale).sp, lineHeight = (prefs.lineHeight - .1f).em),
                             modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
@@ -356,16 +358,40 @@ private fun withMarkers(text: String, markers: List<Marker>, color: androidx.com
         append(text.substring(at))
     }
 
-/** Commentary text keeps only <b>…</b> (the dibur hamatchil) and newlines between comments. */
-private fun boldMarkup(s: String): AnnotatedString = buildAnnotatedString {
-    var rest = s.replace("\n", "\n\n")
-    while (true) {
-        val open = rest.indexOf("<b>")
-        if (open < 0) { append(rest); break }
-        append(rest.substring(0, open))
-        val close = rest.indexOf("</b>", open)
-        if (close < 0) { append(rest.substring(open + 3)); break }
-        withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(rest.substring(open + 3, close)) }
-        rest = rest.substring(close + 4)
+private const val MARK_OPEN = '\u0001'
+private const val MARK_CLOSE = '\u0002'
+
+/** Puts marker letters into raw commentary text as MARK_OPEN label MARK_CLOSE, for [boldMarkup] to style. */
+private fun withMarkerTokens(raw: String, markers: List<Marker>): String = buildString {
+    var at = 0
+    for (m in markers.sortedBy { it.offset }) {
+        append(raw, at, m.offset)
+        append(MARK_OPEN).append(m.label).append(MARK_CLOSE)
+        at = m.offset
     }
+    append(raw, at, raw.length)
+}
+
+/**
+ * Commentary text keeps only <b>…</b> (the dibur hamatchil) and newlines between comments;
+ * marker tokens become small raised letters in [markColor].
+ */
+private fun boldMarkup(s: String, markColor: androidx.compose.ui.graphics.Color): AnnotatedString = buildAnnotatedString {
+    val token = Regex("<b>|</b>|$MARK_OPEN([^$MARK_CLOSE]*)$MARK_CLOSE|\n")
+    var bold = false
+    var at = 0
+    fun text(t: String) = if (bold) withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(t) } else append(t)
+    for (m in token.findAll(s)) {
+        text(s.substring(at, m.range.first))
+        when (m.value) {
+            "<b>" -> bold = true
+            "</b>" -> bold = false
+            "\n" -> append("\n\n")
+            else -> withStyle(SpanStyle(color = markColor, fontSize = 0.6.em, baselineShift = BaselineShift(0.35f), fontFamily = Sans)) {
+                append("(${m.groupValues[1]})")
+            }
+        }
+        at = m.range.last + 1
+    }
+    text(s.substring(at))
 }

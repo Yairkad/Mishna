@@ -25,25 +25,40 @@ object Markers {
     private fun words(text: String): List<Word> =
         Regex("\\S+").findAll(text).map { Word(normWord(it.value), it.range.last + 1) }.filter { it.norm.isNotEmpty() }.toList()
 
-    fun place(mishna: String, commentary: String): List<Marker> {
-        val text = words(mishna)
-        val result = mutableListOf<Pair<Int, MutableList<String>>>()
-        var searchFrom = 0
+    fun place(mishna: String, commentary: String): List<Marker> = placeBoth(mishna, "", commentary).first
+
+    /**
+     * Like [place], and a comment whose dibur hamatchil is not in the mishna is looked up in the
+     * Bartenura (Tosafot Yom Tov often comments on his words). Returns (mishna markers, Bartenura markers);
+     * Bartenura offsets refer to the raw commentary text.
+     */
+    fun placeBoth(mishna: String, bartenura: String, commentary: String): Pair<List<Marker>, List<Marker>> {
+        val texts = listOf(words(mishna), words(bartenura))
+        val from = intArrayOf(0, 0)
+        // (which text, offset, letters)
+        val result = mutableListOf<Triple<Int, Int, MutableList<String>>>()
         for (comment in commentary.split('\n')) {
             val letter = label.find(comment.trim())?.groupValues?.get(1)?.replace("\"", "")?.replace("״", "") ?: continue
             val dh = dibur.find(comment)?.groupValues?.get(1)
                 ?.split(Regex("\\s+"))?.map(::normWord)?.filter { it.isNotEmpty() && it !in filler }.orEmpty()
-            val at = if (dh.isEmpty()) null else find(text, dh, searchFrom) ?: find(text, dh, 0)
-            if (at == null) {
-                result.lastOrNull()?.second?.add(letter)
+            var hit: Pair<Int, Pair<Int, Int>>? = null
+            if (dh.isNotEmpty()) {
+                for (t in texts.indices) {
+                    val at = find(texts[t], dh, from[t]) ?: find(texts[t], dh, 0)
+                    if (at != null) { hit = t to at; break }
+                }
+            }
+            if (hit == null) {
+                result.lastOrNull()?.third?.add(letter)
                 continue
             }
-            val (wordIndex, offset) = at
-            searchFrom = wordIndex
-            val same = result.lastOrNull()?.takeIf { it.first == offset }
-            if (same != null) same.second.add(letter) else result.add(offset to mutableListOf(letter))
+            val (t, at) = hit
+            from[t] = at.first
+            val same = result.lastOrNull()?.takeIf { it.first == t && it.second == at.second }
+            if (same != null) same.third.add(letter) else result.add(Triple(t, at.second, mutableListOf(letter)))
         }
-        return result.map { (offset, letters) -> Marker(offset, join(letters)) }
+        fun markers(t: Int) = result.filter { it.first == t }.map { Marker(it.second, join(it.third)) }
+        return markers(0) to markers(1)
     }
 
     /** Longest prefix of [dh] found in [text] from word [from]: (index of last matched word, char offset after it). */

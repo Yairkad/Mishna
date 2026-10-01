@@ -24,6 +24,8 @@ data class MishnaPage(
     val label: String? = null,
     /** Ikar Tosafot Yom Tov letters to show inside the mishna text. */
     val markers: List<Marker> = emptyList(),
+    /** Ikar Tosafot Yom Tov letters inside the Bartenura text (offsets in the raw text). */
+    val bartenuraMarkers: List<Marker> = emptyList(),
 )
 
 data class StudyUi(
@@ -53,14 +55,17 @@ class StudyViewModel(app: Application) : AndroidViewModel(app) {
             rows.map { m ->
                 val ref = Mishnayot.ref(m.globalIndex)
                 val c = comms[m.globalIndex].orEmpty()
+                val bartenura = c.firstOrNull { it.source == CommentarySource.BARTENURA }?.text
+                val ikar = c.firstOrNull { it.source == CommentarySource.IKAR_TOSAFOT_YOM_TOV }?.text
+                val (inMishna, inBartenura) = ikar?.let { Markers.placeBoth(m.text, bartenura.orEmpty(), it) } ?: (emptyList<Marker>() to emptyList())
                 MishnaPage(
                     title = "${ref.tractate} פרק ${Hebrew.numeral(ref.perek)} · משנה ${Hebrew.numeral(ref.mishna)}",
                     text = m.text,
-                    bartenura = c.firstOrNull { it.source == CommentarySource.BARTENURA }?.text,
-                    ikarTosafotYomTov = c.firstOrNull { it.source == CommentarySource.IKAR_TOSAFOT_YOM_TOV }?.text,
+                    bartenura = bartenura,
+                    ikarTosafotYomTov = ikar,
                     label = sec.label,
-                    markers = c.firstOrNull { it.source == CommentarySource.IKAR_TOSAFOT_YOM_TOV }?.text
-                        ?.let { Markers.place(m.text, it) }.orEmpty(),
+                    markers = inMishna,
+                    bartenuraMarkers = inBartenura,
                 )
             }
         }
