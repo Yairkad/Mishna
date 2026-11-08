@@ -31,6 +31,8 @@ jobs:
         with:
           name: mishna-debug-apk
           path: app/build/outputs/apk/debug/*.apk
+          # Only a spare copy: the app updates from the published releases.
+          retention-days: 7
       # Each push publishes a release; the app's "check for update" reads the latest one.
       - name: Publish release
         if: github.event_name != 'pull_request'
